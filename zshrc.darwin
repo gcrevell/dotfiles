@@ -1,0 +1,13 @@
+# zshrc.darwin — macOS-only zsh config
+# Installed into ~/.zshrc-config/ and sourced from ~/.zshrc on Darwin only.
+
+# Homebrew
+if [[ -d /opt/homebrew/bin ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
+
+# Aliases
+alias flushdns="sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder"
+alias showfiles="defaults write com.apple.finder AppleShowAllFiles YES; killall Finder"
+alias hidefiles="defaults write com.apple.finder AppleShowAllFiles NO; killall Finder"
+alias vsc="open -a 'Visual Studio Code' ."

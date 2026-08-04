@@ -32,6 +32,14 @@ if [[ ! -f "$SRC_ZSHRC" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Linux specific install (must run before oh-my-zsh, which requires zsh)
+# ---------------------------------------------------------------------------
+if [[ "$(uname -s)" == "Linux" ]]; then
+  info "Running linux-install.sh"
+  "$SCRIPT_DIR/linux-install.sh"
+fi
+
+# ---------------------------------------------------------------------------
 # Install oh-my-zsh if missing
 # ---------------------------------------------------------------------------
 if [[ -d "$HOME/.oh-my-zsh" ]]; then

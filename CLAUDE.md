@@ -1,0 +1,32 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Overview
+
+Personal dotfiles repo for setting up zsh (via oh-my-zsh) on macOS and Linux. Small, all bash/zsh, no build system, no tests, no package manager.
+
+## Running / testing changes
+
+There's no test suite. To validate changes, run the install flow itself:
+
+```bash
+./install.sh          # personal git config (Skyler Revells / icloud email)
+./install.sh --work    # work git config (Gabriel Revells, prompts for work email if not already set)
+```
+
+- `linux-install.sh` and `mac-install.sh` are also safe to run standalone (each `source`s `lib.sh` itself).
+- Scripts use `set -euo pipefail` (`install.sh`) / `set -e` (the others) — keep new code compatible with that (no unbound var reads, check command success).
+- `lib.sh` only defines `info()`/`warn()` helpers and has no side effects when sourced.
+
+## Architecture
+
+`install.sh` is the entrypoint and orchestrates everything in order:
+
+1. On Linux, runs `linux-install.sh` first (installs zsh via whichever package manager is present — apt/dnf/pacman/zypper/apk — and chsh's it as the default shell) **before** oh-my-zsh is installed, since oh-my-zsh requires zsh to exist.
+2. Installs oh-my-zsh itself (unattended) plus the `zsh-autosuggestions` and `zsh-syntax-highlighting` plugins if missing, and copies `pure.zsh-theme` into oh-my-zsh's custom themes dir.
+3. On macOS, runs `mac-install.sh` (installs Homebrew and the `claude-code` cask), then copies `zshrc.darwin` into `~/.zshrc-config/darwin.zsh`.
+4. Backs up any existing `~/.zshrc` to `~/.zshrc.local` (or to `~/.zshrc.bak` if `.zshrc.local` already exists), then installs this repo's `zshrc` as `~/.zshrc`.
+5. Sets up global git aliases (`co`, `lg`), and either personal or work `user.name`/`user.email` depending on `--work`.
+
+Key convention: **OS-specific zsh config is layered in, not hardcoded into `zshrc`.** The tracked `zshrc` sources every `*.zsh` file under `~/.zshrc-config/` (populated by `install.sh` per-OS, e.g. `darwin.zsh` from `zshrc.darwin`) and finally sources `~/.zshrc.local` for untracked, machine-specific overrides. When adding OS-specific shell config, add a new `zshrc.<os>` file and wire its install step into `install.sh`, rather than adding conditionals to `zshrc` directly.

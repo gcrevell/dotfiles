@@ -42,7 +42,7 @@ export EDITOR="vim"
 export VISUAL="$EDITOR"
 export LANG="en_US.UTF-8"
 
-export PATH="$HOME/bin:$HOME/.local/bin:$PATH"
+export PATH="$HOME/.bin:$HOME/.local/bin:$PATH"
 
 # ---------------------------------------------------------------------------
 # Aliases

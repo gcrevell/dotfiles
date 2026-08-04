@@ -103,12 +103,13 @@ cp "$SRC_ZSHRC" "$DEST_ZSHRC"
 # ---------------------------------------------------------------------------
 # Git setup
 # ---------------------------------------------------------------------------
-info "Setting up 'git co' as an alias for 'git checkout'"
-git config --global alias.co checkout
+info "Setting up git aliases"
+git config set --global alias.co checkout
+git config set --global alias.lg "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --"
 
 if $WORK_MODE; then
   info "Setting up work git config"
-  git config --global user.name "Gabe Revells"
+  git config --global user.name "Gabriel Revells"
 
   if git config --global user.email &>/dev/null; then
     info "git user.email already set, leaving it alone"

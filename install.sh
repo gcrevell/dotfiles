@@ -15,6 +15,7 @@ SRC_ZSHRC="$SCRIPT_DIR/zshrc"
 DEST_ZSHRC="$HOME/.zshrc"
 LOCAL_ZSHRC="$HOME/.zshrc.local"
 ZSHRC_CONFIG_DIR="$HOME/.zshrc-config"
+ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
 source "$SCRIPT_DIR/lib.sh"
 
@@ -49,6 +50,22 @@ else
   RUNZSH=no CHSH=no KEEP_ZSHRC=yes \
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 fi
+
+if [[ -d "$HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions" ]]; then
+  info "zsh-autosuggestions already installed, skipping"
+else
+  info "Installing zsh-autosuggestions..."
+  git clone https://github.com/zsh-users/zsh-autosuggestions $ZSH_CUSTOM/plugins/zsh-autosuggestions
+fi
+
+if [[ -d "$HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting" ]]; then
+  info "zsh-syntax-highlighting already installed, skipping"
+else
+  info "Installing zsh-syntax-highlighting..."
+  git clone https://github.com/zsh-users/zsh-syntax-highlighting $ZSH_CUSTOM/plugins/zsh-syntax-highlighting
+fi
+
+cp "$SCRIPT_DIR/pure.zsh-theme" "$ZSH_CUSTOM/themes/pure.zsh-theme"
 
 # ---------------------------------------------------------------------------
 # Mac specific install

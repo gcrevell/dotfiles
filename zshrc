@@ -7,14 +7,17 @@
 export ZSH="$HOME/.oh-my-zsh"
 
 # Theme: https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="robbyrussell"
+ZSH_THEME="pure"
 
 # Plugins: https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins
 plugins=(
   git
+  gh
   z
   colored-man-pages
   command-not-found
+  zsh-autosuggestions
+  zsh-syntax-highlighting
 )
 
 source "$ZSH/oh-my-zsh.sh"

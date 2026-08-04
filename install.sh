@@ -16,8 +16,7 @@ DEST_ZSHRC="$HOME/.zshrc"
 LOCAL_ZSHRC="$HOME/.zshrc.local"
 ZSHRC_CONFIG_DIR="$HOME/.zshrc-config"
 
-info() { printf '\033[1;34m==>\033[0m %s\n' "$1"; }
-warn() { printf '\033[1;33m==>\033[0m %s\n' "$1"; }
+source "$SCRIPT_DIR/lib.sh"
 
 WORK_MODE=false
 while [[ $# -gt 0 ]]; do

@@ -70,3 +70,8 @@ fi
 # Local overrides (not tracked in dotfiles repo)
 # ---------------------------------------------------------------------------
 [[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
+
+# ---------------------------------------------------------------------------
+# direnv (last, so its per-directory PATH/env changes win)
+# ---------------------------------------------------------------------------
+command -v direnv &>/dev/null && eval "$(direnv hook zsh)"

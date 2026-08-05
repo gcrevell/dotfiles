@@ -30,3 +30,10 @@ else
   info "Upgrading git-recent..."
   brew upgrade git-recent
 fi
+
+if brew list direnv &>/dev/null; then
+  info "direnv already installed, skipping"
+else
+  info "Installing direnv..."
+  brew install direnv
+fi

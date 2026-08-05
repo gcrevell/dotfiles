@@ -22,3 +22,11 @@ else
   info "Upgrading claude-code..."
   brew upgrade --cask claude-code
 fi
+
+if ! brew list git-recent &>/dev/null; then
+  info "Installing git-recent..."
+  brew install git-recent
+else
+  info "Upgrading git-recent..."
+  brew upgrade git-recent
+fi

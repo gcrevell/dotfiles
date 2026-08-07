@@ -37,3 +37,10 @@ else
   info "Installing direnv..."
   brew install direnv
 fi
+
+if brew list gh &>/dev/null; then
+  info "gh already installed, skipping"
+else
+  info "Installing gh..."
+  brew install gh
+fi

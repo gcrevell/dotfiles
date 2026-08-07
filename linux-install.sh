@@ -55,3 +55,35 @@ else
     exit 1
   fi
 fi
+
+if command -v gh &>/dev/null; then
+  info "gh already installed, skipping"
+else
+  info "Installing gh..."
+  if command -v apt-get &>/dev/null; then
+    # Ubuntu/Debian only ship gh in newer releases, so use GitHub's own apt repo.
+    # It publishes amd64/arm64/armhf, which covers 64- and 32-bit Raspberry Pi OS.
+    if ! command -v curl &>/dev/null; then
+      sudo apt-get update && sudo apt-get install -y curl
+    fi
+    keyring="$(mktemp)"
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o "$keyring"
+    sudo install -m 0755 -d /etc/apt/keyrings
+    sudo install -m 0644 "$keyring" /etc/apt/keyrings/githubcli-archive-keyring.gpg
+    rm -f "$keyring"
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+      | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
+    sudo apt-get update && sudo apt-get install -y gh
+  elif command -v dnf &>/dev/null; then
+    sudo dnf install -y gh
+  elif command -v pacman &>/dev/null; then
+    sudo pacman -Sy --noconfirm github-cli
+  elif command -v zypper &>/dev/null; then
+    sudo zypper install -y gh
+  elif command -v apk &>/dev/null; then
+    sudo apk add github-cli
+  else
+    echo "error: no supported package manager found (apt-get, dnf, pacman, zypper, apk)" >&2
+    exit 1
+  fi
+fi

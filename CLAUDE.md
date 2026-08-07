@@ -23,9 +23,9 @@ There's no test suite. To validate changes, run the install flow itself:
 
 `install.sh` is the entrypoint and orchestrates everything in order:
 
-1. On Linux, runs `linux-install.sh` first (installs zsh via whichever package manager is present — apt/dnf/pacman/zypper/apk — and chsh's it as the default shell) **before** oh-my-zsh is installed, since oh-my-zsh requires zsh to exist.
+1. On Linux, runs `linux-install.sh` first (installs zsh via whichever package manager is present — apt/dnf/pacman/zypper/apk — and chsh's it as the default shell, then `direnv` and `gh`) **before** oh-my-zsh is installed, since oh-my-zsh requires zsh to exist. `gh` is the one package not available from the stock apt repos on older Ubuntu/Debian, so the apt branch registers GitHub's own repo (`cli.github.com/packages`) before installing.
 2. Installs oh-my-zsh itself (unattended) plus the `zsh-autosuggestions` and `zsh-syntax-highlighting` plugins if missing, and copies `pure.zsh-theme` into oh-my-zsh's custom themes dir.
-3. On macOS, runs `mac-install.sh` (installs Homebrew and the `claude-code` cask), then copies `zshrc.darwin` into `~/.zshrc-config/darwin.zsh`.
+3. On macOS, runs `mac-install.sh` (installs Homebrew, the `claude-code` cask, `git-recent`, `direnv`, and `gh`), then copies `zshrc.darwin` into `~/.zshrc-config/darwin.zsh`.
 4. Backs up any existing `~/.zshrc` to `~/.zshrc.local` (or to `~/.zshrc.bak` if `.zshrc.local` already exists), then installs this repo's `zshrc` as `~/.zshrc`.
 5. Sets up global git aliases (`co`, `lg`), and either personal or work `user.name`/`user.email` depending on `--work`.
 

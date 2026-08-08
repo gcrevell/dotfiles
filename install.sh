@@ -16,6 +16,7 @@ DEST_ZSHRC="$HOME/.zshrc"
 LOCAL_ZSHRC="$HOME/.zshrc.local"
 ZSHRC_CONFIG_DIR="$HOME/.zshrc-config"
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+OMZ_TEMPLATE="${ZSH:-$HOME/.oh-my-zsh}/templates/zshrc.zsh-template"
 
 source "$SCRIPT_DIR/lib.sh"
 
@@ -85,6 +86,15 @@ fi
 if [[ -f "$DEST_ZSHRC" || -L "$DEST_ZSHRC" ]]; then
   if cmp -s "$DEST_ZSHRC" "$SRC_ZSHRC" 2>/dev/null; then
     info "~/.zshrc already matches this repo's zshrc, nothing to back up"
+  elif cmp -s "$DEST_ZSHRC" "$OMZ_TEMPLATE" 2>/dev/null; then
+    # oh-my-zsh's installer writes its stock template whenever no ~/.zshrc exists
+    # -- KEEP_ZSHRC=yes only protects a file that is already there. Preserving
+    # that template as ~/.zshrc.local is actively harmful: this repo's zshrc
+    # sources ~/.zshrc.local last, and the template resets ZSH_THEME to
+    # robbyrussell and re-sources oh-my-zsh.sh, silently clobbering the theme.
+    # It is byte-identical to the stock template, so it holds nothing of ours.
+    info "~/.zshrc is oh-my-zsh's stock template, discarding rather than backing up"
+    rm -f "$DEST_ZSHRC"
   elif [[ -e "$LOCAL_ZSHRC" ]]; then
     warn "~/.zshrc.local already exists, leaving existing ~/.zshrc in place at $DEST_ZSHRC.bak"
     mv "$DEST_ZSHRC" "$DEST_ZSHRC.bak"

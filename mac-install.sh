@@ -44,3 +44,10 @@ else
   info "Installing gh..."
   brew install gh
 fi
+
+if brew list tea &>/dev/null; then
+  info "tea already installed, skipping"
+else
+  info "Installing tea..."
+  brew install tea
+fi

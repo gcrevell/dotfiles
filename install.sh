@@ -20,13 +20,27 @@ OMZ_TEMPLATE="${ZSH:-$HOME/.oh-my-zsh}/templates/zshrc.zsh-template"
 
 source "$SCRIPT_DIR/lib.sh"
 
-WORK_MODE=false
+usage() {
+  echo "usage: $0 --env <work|personal|personal-headless>" >&2
+  exit 1
+}
+
+ENVIRONMENT=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --work) WORK_MODE=true; shift ;;
-    *) echo "unknown flag: $1" >&2; exit 1 ;;
+    --env)
+      ENVIRONMENT="${2:-}"
+      shift 2
+      ;;
+    *) echo "unknown flag: $1" >&2; usage ;;
   esac
 done
+
+case "$ENVIRONMENT" in
+  work|personal|personal-headless) ;;
+  "") echo "error: --env is required" >&2; usage ;;
+  *) echo "error: invalid --env value: $ENVIRONMENT" >&2; usage ;;
+esac
 
 if [[ ! -f "$SRC_ZSHRC" ]]; then
   echo "error: $SRC_ZSHRC not found" >&2
@@ -120,7 +134,7 @@ git config set --global alias.lg "log --color --graph --pretty=format:'%Cred%h%C
 info "Setting up git pull behaviour"
 git config set --global pull.rebase true
 
-if $WORK_MODE; then
+if [[ "$ENVIRONMENT" == "work" ]]; then
   info "Setting up work git config"
   git config --global user.name "Gabriel Revells"
 

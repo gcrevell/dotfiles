@@ -56,6 +56,28 @@ else
   fi
 fi
 
+# install.sh uses jq to merge Claude Code settings. Packaged as "jq" everywhere,
+# so no special-casing like gh needs below.
+if command -v jq &>/dev/null; then
+  info "jq already installed, skipping"
+else
+  info "Installing jq..."
+  if command -v apt-get &>/dev/null; then
+    sudo apt-get update && sudo apt-get install -y jq
+  elif command -v dnf &>/dev/null; then
+    sudo dnf install -y jq
+  elif command -v pacman &>/dev/null; then
+    sudo pacman -Sy --noconfirm jq
+  elif command -v zypper &>/dev/null; then
+    sudo zypper install -y jq
+  elif command -v apk &>/dev/null; then
+    sudo apk add jq
+  else
+    echo "error: no supported package manager found (apt-get, dnf, pacman, zypper, apk)" >&2
+    exit 1
+  fi
+fi
+
 if command -v gh &>/dev/null; then
   info "gh already installed, skipping"
 else

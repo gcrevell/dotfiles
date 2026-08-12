@@ -29,5 +29,6 @@ There's no test suite. To validate changes, run the install flow itself:
 3. On macOS, runs `mac-install.sh` (installs Homebrew, the `claude-code` cask, `git-recent`, `direnv`, `gh`, and `tea` — the Gitea CLI, macOS-only), then copies `zshrc.darwin` into `~/.zshrc-config/darwin.zsh`.
 4. Backs up any existing `~/.zshrc` to `~/.zshrc.local` (or to `~/.zshrc.bak` if `.zshrc.local` already exists), then installs this repo's `zshrc` as `~/.zshrc`.
 5. Sets up global git aliases (`co`, `lg`), and either personal or work `user.name`/`user.email` depending on the required `--env` flag (`work`, `personal`, or `personal-headless` — the latter two are currently identical).
+6. Merges `attribution.commit`/`attribution.pr` (both set to `""`) into `~/.claude/settings.json` via a `python3` snippet, disabling Claude Code's commit/PR attribution trailers without clobbering other keys already in that file.
 
 Key convention: **OS-specific zsh config is layered in, not hardcoded into `zshrc`.** The tracked `zshrc` sources every `*.zsh` file under `~/.zshrc-config/` (populated by `install.sh` per-OS, e.g. `darwin.zsh` from `zshrc.darwin`) and finally sources `~/.zshrc.local` for untracked, machine-specific overrides. When adding OS-specific shell config, add a new `zshrc.<os>` file and wire its install step into `install.sh`, rather than adding conditionals to `zshrc` directly.

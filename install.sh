@@ -150,4 +150,27 @@ else
   git config --global user.email "wowza7125@icloud.com"
 fi
 
+info "Disabling Claude Code attribution in commits/PRs"
+CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+mkdir -p "$HOME/.claude"
+python3 - "$CLAUDE_SETTINGS" <<'PYEOF'
+import json
+import os
+import sys
+
+path = sys.argv[1]
+settings = {}
+if os.path.exists(path):
+    with open(path) as f:
+        settings = json.load(f)
+
+settings.setdefault("attribution", {})
+settings["attribution"]["commit"] = ""
+settings["attribution"]["pr"] = ""
+
+with open(path, "w") as f:
+    json.dump(settings, f, indent=2)
+    f.write("\n")
+PYEOF
+
 info "Done. Restart your shell or run: source ~/.zshrc"

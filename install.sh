@@ -150,25 +150,35 @@ else
   git config --global user.email "wowza7125@icloud.com"
 fi
 
-info "Disabling Claude Code attribution in commits/PRs"
+info "Merging claude-settings.json into ~/.claude/settings.json"
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 mkdir -p "$HOME/.claude"
-python3 - "$CLAUDE_SETTINGS" <<'PYEOF'
+python3 - "$SCRIPT_DIR/claude-settings.json" "$CLAUDE_SETTINGS" <<'PYEOF'
 import json
 import os
 import sys
 
-path = sys.argv[1]
+defaults_path, dest_path = sys.argv[1], sys.argv[2]
+
+with open(defaults_path) as f:
+    defaults = json.load(f)
+
 settings = {}
-if os.path.exists(path):
-    with open(path) as f:
+if os.path.exists(dest_path):
+    with open(dest_path) as f:
         settings = json.load(f)
 
-settings.setdefault("attribution", {})
-settings["attribution"]["commit"] = ""
-settings["attribution"]["pr"] = ""
+def deep_merge(dst, src):
+    for key, value in src.items():
+        if isinstance(value, dict) and isinstance(dst.get(key), dict):
+            deep_merge(dst[key], value)
+        else:
+            dst[key] = value
+    return dst
 
-with open(path, "w") as f:
+deep_merge(settings, defaults)
+
+with open(dest_path, "w") as f:
     json.dump(settings, f, indent=2)
     f.write("\n")
 PYEOF

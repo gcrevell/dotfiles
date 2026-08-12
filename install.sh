@@ -168,15 +168,17 @@ if os.path.exists(dest_path):
     with open(dest_path) as f:
         settings = json.load(f)
 
-def deep_merge(dst, src):
+def fill_missing(dst, src):
     for key, value in src.items():
-        if isinstance(value, dict) and isinstance(dst.get(key), dict):
-            deep_merge(dst[key], value)
+        if isinstance(value, dict):
+            if not isinstance(dst.get(key), dict):
+                dst[key] = {}
+            fill_missing(dst[key], value)
         else:
-            dst[key] = value
+            dst.setdefault(key, value)
     return dst
 
-deep_merge(settings, defaults)
+fill_missing(settings, defaults)
 
 with open(dest_path, "w") as f:
     json.dump(settings, f, indent=2)

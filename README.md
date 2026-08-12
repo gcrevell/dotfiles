@@ -7,8 +7,9 @@ Personal dotfiles for setting up a zsh environment on macOS and Linux.
 ```bash
 git clone <this-repo> ~/src/dotfiles
 cd ~/src/dotfiles
-./install.sh          # personal git config
-./install.sh --work    # work git config instead
+./install.sh --env personal            # personal git config
+./install.sh --env personal-headless   # personal git config, same flow as above
+./install.sh --env work                # work git config instead
 ```
 
 Restart your shell (or run `source ~/.zshrc`) afterwards.
@@ -25,6 +26,6 @@ Re-running `install.sh` is safe — it skips anything already installed and won'
 - **`~/.zshrc`**: history settings, `EDITOR`/`VISUAL`/`LANG`, `PATH` additions (`~/.bin`, `~/.local/bin`), aliases (`ll`, `la`, `..`, `...`, `grep`, `gs`, `gd`, `gco`, `gc`), and the `direnv` shell hook.
 - **OS-specific zsh config** under `~/.zshrc-config/`, sourced automatically from `~/.zshrc` (e.g. `zshrc.darwin` becomes `~/.zshrc-config/darwin.zsh`, adding Homebrew's shellenv and Mac-only aliases like `flushdns`, `showfiles`, `hidefiles`, `vsc`).
 - **Git aliases**: `co` (checkout), `lg` (pretty log graph).
-- **Git identity**: `--work` sets `user.name` to "Gabriel Revells" and prompts for a work email (only if `user.email` isn't already set); without `--work` it sets the personal identity ("Skyler Revells" / iCloud email).
+- **Git identity**: `--env` is required and must be `work`, `personal`, or `personal-headless`. `work` sets `user.name` to "Gabriel Revells" and prompts for a work email (only if `user.email` isn't already set); `personal` and `personal-headless` set the personal identity ("Skyler Revells" / iCloud email) and are otherwise identical.
 
 Your existing `~/.zshrc` (if different from this repo's) is backed up to `~/.zshrc.local`, which is sourced at the end of the installed `~/.zshrc` for untracked, machine-specific overrides.

@@ -11,8 +11,9 @@ Personal dotfiles repo for setting up zsh (via oh-my-zsh) on macOS and Linux. Sm
 There's no test suite. To validate changes, run the install flow itself:
 
 ```bash
-./install.sh          # personal git config (Skyler Revells / icloud email)
-./install.sh --work    # work git config (Gabriel Revells, prompts for work email if not already set)
+./install.sh --env personal            # personal git config (Skyler Revells / icloud email)
+./install.sh --env personal-headless   # same flow as --env personal
+./install.sh --env work                # work git config (Gabriel Revells, prompts for work email if not already set)
 ```
 
 - `linux-install.sh` and `mac-install.sh` are also safe to run standalone (each `source`s `lib.sh` itself).
@@ -27,6 +28,6 @@ There's no test suite. To validate changes, run the install flow itself:
 2. Installs oh-my-zsh itself (unattended) plus the `zsh-autosuggestions` and `zsh-syntax-highlighting` plugins if missing, and copies `pure.zsh-theme` into oh-my-zsh's custom themes dir.
 3. On macOS, runs `mac-install.sh` (installs Homebrew, the `claude-code` cask, `git-recent`, `direnv`, `gh`, and `tea` — the Gitea CLI, macOS-only), then copies `zshrc.darwin` into `~/.zshrc-config/darwin.zsh`.
 4. Backs up any existing `~/.zshrc` to `~/.zshrc.local` (or to `~/.zshrc.bak` if `.zshrc.local` already exists), then installs this repo's `zshrc` as `~/.zshrc`.
-5. Sets up global git aliases (`co`, `lg`), and either personal or work `user.name`/`user.email` depending on `--work`.
+5. Sets up global git aliases (`co`, `lg`), and either personal or work `user.name`/`user.email` depending on the required `--env` flag (`work`, `personal`, or `personal-headless` — the latter two are currently identical).
 
 Key convention: **OS-specific zsh config is layered in, not hardcoded into `zshrc`.** The tracked `zshrc` sources every `*.zsh` file under `~/.zshrc-config/` (populated by `install.sh` per-OS, e.g. `darwin.zsh` from `zshrc.darwin`) and finally sources `~/.zshrc.local` for untracked, machine-specific overrides. When adding OS-specific shell config, add a new `zshrc.<os>` file and wire its install step into `install.sh`, rather than adding conditionals to `zshrc` directly.

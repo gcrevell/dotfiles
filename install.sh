@@ -117,6 +117,9 @@ info "Setting up git aliases"
 git config set --global alias.co checkout
 git config set --global alias.lg "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --"
 
+info "Setting up git pull behaviour"
+git config set --global pull.rebase true
+
 if $WORK_MODE; then
   info "Setting up work git config"
   git config --global user.name "Gabriel Revells"

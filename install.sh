@@ -17,6 +17,8 @@ LOCAL_ZSHRC="$HOME/.zshrc.local"
 ZSHRC_CONFIG_DIR="$HOME/.zshrc-config"
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 OMZ_TEMPLATE="${ZSH:-$HOME/.oh-my-zsh}/templates/zshrc.zsh-template"
+CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+LOCAL_CLAUDE_SETTINGS="$HOME/.claude-settings.local.json"
 
 source "$SCRIPT_DIR/lib.sh"
 
@@ -148,6 +150,43 @@ else
   info "Setting up personal git config"
   git config --global user.name "Skyler Revells"
   git config --global user.email "wowza7125@icloud.com"
+fi
+
+# ---------------------------------------------------------------------------
+# Claude Code settings
+#
+# Claude Code has no settings.local.json at user scope (only project scope), so
+# the layering is done here instead. Three layers, each overwriting the one
+# before it:
+#
+#   1. whatever is already in ~/.claude/settings.json -- unmanaged, machine-local
+#      keys (model, statusLine, enabledPlugins) survive untouched
+#   2. this repo's claude-settings.json -- shared defaults, re-applied on every
+#      run, so changing a default here actually reaches machines already set up
+#   3. ~/.claude-settings.local.json -- deliberate per-machine overrides, always
+#      wins. Same rule as ~/.zshrc: don't hand-edit the generated file, put
+#      anything you want to keep in the .local one.
+# ---------------------------------------------------------------------------
+if command -v jq &>/dev/null; then
+  info "Merging Claude Code settings into $CLAUDE_SETTINGS"
+  mkdir -p "$(dirname "$CLAUDE_SETTINGS")"
+
+  LAYERS=("$SCRIPT_DIR/claude-settings.json")
+  if [[ -f "$CLAUDE_SETTINGS" ]]; then
+    LAYERS=("$CLAUDE_SETTINGS" "${LAYERS[@]}")
+  fi
+  if [[ -f "$LOCAL_CLAUDE_SETTINGS" ]]; then
+    LAYERS+=("$LOCAL_CLAUDE_SETTINGS")
+  fi
+
+  # jq's `*` merges objects recursively with the right-hand side winning; arrays
+  # and scalars are replaced wholesale. Merging into a variable first means a
+  # parse error in any layer aborts (set -e) before the real settings file is
+  # ever truncated.
+  MERGED_SETTINGS="$(jq -s 'reduce .[] as $layer ({}; . * $layer)' "${LAYERS[@]}")"
+  printf '%s\n' "$MERGED_SETTINGS" > "$CLAUDE_SETTINGS"
+else
+  warn "jq not found, skipping Claude Code settings merge"
 fi
 
 info "Done. Restart your shell or run: source ~/.zshrc"

@@ -51,3 +51,12 @@ else
   info "Installing tea..."
   brew install tea
 fi
+
+# install.sh uses jq to merge Claude Code settings. macOS 15+ ships /usr/bin/jq,
+# older releases don't, so install it rather than relying on the system copy.
+if brew list jq &>/dev/null; then
+  info "jq already installed, skipping"
+else
+  info "Installing jq..."
+  brew install jq
+fi

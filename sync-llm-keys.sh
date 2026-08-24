@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 #
-# sync-llm-keys.sh — Export SSH signing and push keys from 1Password Service Account
+# sync-llm-keys.sh — Export SSH signing and push keys from 1Password to disk.
+#
+# The keys deliberately land on disk (0600) so non-interactive tooling can sign
+# and push while the 1Password desktop app is LOCKED. Run this once while
+# 1Password is unlocked; `op` reads through the desktop app integration, so no
+# service-account token is created, prompted for, or stored anywhere.
 #
 
 set -euo pipefail
@@ -14,9 +19,9 @@ else
 fi
 
 KEYS_DIR="${HOME}/.ssh/llm_keys"
-VAULT="${OP_VAULT_NAME:-LLM-Automation}"
+VAULT="${OP_VAULT_NAME:-Global Dev}"
 
-# 1Password Item IDs (defaults from 1P vault, configurable via environment)
+# 1Password item IDs, overridable via environment.
 SIGNING_KEY_ITEM="${OP_SIGNING_KEY_ID:-qm6ecq2p5hdhwjkz2xuggh5o3m}"
 GITHUB_KEY_ITEM="${OP_GITHUB_KEY_ID:-hwvx6rmbmencyidm6vedtm4pyu}"
 GITEA_KEY_ITEM="${OP_GITEA_KEY_ID:-6jsiy65kopwquyoi2nlhghqese}"
@@ -26,8 +31,11 @@ if ! command -v op &>/dev/null; then
   exit 1
 fi
 
-if [[ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]]; then
-  echo "error: OP_SERVICE_ACCOUNT_TOKEN environment variable is not set" >&2
+# Fail once, with a useful message, rather than three identical per-key errors.
+if ! op vault list &>/dev/null; then
+  echo "error: 1Password is locked, or 'op' is not signed in." >&2
+  echo "       Unlock the 1Password app (Settings > Developer > 'Integrate with" >&2
+  echo "       1Password CLI'), then re-run: sync-llm-keys" >&2
   exit 1
 fi
 
@@ -37,53 +45,52 @@ chmod 700 "$KEYS_DIR"
 info "Syncing keys from 1Password vault '$VAULT' to $KEYS_DIR..."
 
 fetch_key() {
-  local item_id="$1"
-  local fallback_title="$2"
-  local dest_base="$3"
+  local item="$1" title="$2" dest="$3"
+  local priv
 
-  # 1. Fetch private key
-  local priv_content=""
-  if priv_content="$(op read "op://${VAULT}/${item_id}/private key" 2>/dev/null)"; then
-    :
-  elif priv_content="$(op read "op://${VAULT}/${fallback_title}/private key" 2>/dev/null)"; then
-    :
-  elif priv_content="$(op read "op://${item_id}/private key" 2>/dev/null)"; then
-    :
-  else
-    warn "Failed to fetch private key for item '${item_id}' (${fallback_title})"
+  # Secret references are op://<vault>/<item>/<field> — all three parts are
+  # required. The ?ssh-format=openssh modifier matters: without it `op read`
+  # hands back a PKCS#8 "BEGIN PRIVATE KEY" blob, which OpenSSH cannot use for
+  # ed25519 keys. Try the stable item ID first, then fall back to the title.
+  if ! priv="$(op read "op://${VAULT}/${item}/private key?ssh-format=openssh" 2>/dev/null)" \
+     && ! priv="$(op read "op://${VAULT}/${title}/private key?ssh-format=openssh" 2>/dev/null)"; then
+    warn "Could not read private key for '${title}' (${item}) from vault '${VAULT}'"
     return 1
   fi
 
-  printf '%s\n' "$priv_content" > "${dest_base}"
-  chmod 600 "${dest_base}"
+  # Subshell umask so the private key is never briefly group/world readable.
+  ( umask 077; printf '%s\n' "$priv" > "$dest" )
 
-  # 2. Fetch public key (or derive via ssh-keygen)
-  local pub_content=""
-  if pub_content="$(op read "op://${VAULT}/${item_id}/public key" 2>/dev/null)"; then
-    printf '%s\n' "$pub_content" > "${dest_base}.pub"
-  elif pub_content="$(op read "op://${VAULT}/${fallback_title}/public key" 2>/dev/null)"; then
-    printf '%s\n' "$pub_content" > "${dest_base}.pub"
-  elif pub_content="$(op read "op://${item_id}/public key" 2>/dev/null)"; then
-    printf '%s\n' "$pub_content" > "${dest_base}.pub"
-  else
-    # Derive directly from the private key
-    ssh-keygen -y -f "${dest_base}" > "${dest_base}.pub" 2>/dev/null || true
+  # Derive the public key from what we just wrote rather than fetching it
+  # separately: it doubles as proof that OpenSSH can actually load the private
+  # key, which a stored-public-key copy would happily hide.
+  if ! ssh-keygen -y -f "$dest" > "${dest}.pub" 2>/dev/null; then
+    warn "Key written for '${title}' is not loadable by OpenSSH — discarding"
+    rm -f "$dest" "${dest}.pub"
+    return 1
   fi
 
-  if [[ -f "${dest_base}.pub" ]]; then
-    chmod 644 "${dest_base}.pub"
-  fi
+  chmod 600 "$dest"
+  chmod 644 "${dest}.pub"
+  info "  synced ${dest##*/}"
+  return 0
 }
 
-# 1. Git Signing Key
-fetch_key "$SIGNING_KEY_ITEM" "Git Signing Key" "${KEYS_DIR}/id_signing"
+# Collect failures rather than letting `set -e` abort on the first one, so one
+# missing item doesn't silently skip the remaining keys. Plain string rather
+# than an array: `${#arr[@]}` on an empty array trips `set -u` on bash 3.2,
+# which is what macOS still ships as /bin/bash.
+failed=""
+fetch_key "$SIGNING_KEY_ITEM" "Global Commit signing key" "${KEYS_DIR}/id_signing" \
+  || failed="$failed signing"
+fetch_key "$GITHUB_KEY_ITEM" "Private GitHub Access Key" "${KEYS_DIR}/id_personal_github" \
+  || failed="$failed github"
+fetch_key "$GITEA_KEY_ITEM" "Private Gitea Access Token" "${KEYS_DIR}/id_personal_gitea" \
+  || failed="$failed gitea"
 
-# 2. Personal Push Key (GitHub)
-fetch_key "$GITHUB_KEY_ITEM" "Personal GitHub Push Key" "${KEYS_DIR}/id_personal_github"
+if [[ -n "${failed// /}" ]]; then
+  warn "Failed to sync:${failed}"
+  exit 1
+fi
 
-# 3. Personal Push Key (Gitea / git-server)
-fetch_key "$GITEA_KEY_ITEM" "Personal Gitea Push Key" "${KEYS_DIR}/id_personal_gitea"
-
-info "Successfully synced keys to $KEYS_DIR"
-
-
+info "Synced 3 keys to $KEYS_DIR"

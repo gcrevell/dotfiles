@@ -256,27 +256,14 @@ elif [[ "$ENVIRONMENT" == "personal" ]]; then
   cp "$SCRIPT_DIR/sync-llm-keys.sh" "$HOME/.local/bin/sync-llm-keys"
   chmod +x "$HOME/.local/bin/sync-llm-keys"
 
-  # Check for 1Password Service Account Token
-  if [[ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]]; then
-    if [[ -f "$LOCAL_ZSHRC" ]] && grep -q 'export OP_SERVICE_ACCOUNT_TOKEN=' "$LOCAL_ZSHRC"; then
-      info "OP_SERVICE_ACCOUNT_TOKEN found in ~/.zshrc.local, skipping prompt"
-      eval "$(grep 'export OP_SERVICE_ACCOUNT_TOKEN=' "$LOCAL_ZSHRC" | head -n 1)"
-    else
-      read -r -s -p "Enter 1Password Service Account Token (for LLM key sync): " OP_TOKEN
-      echo ""
-      if [[ -n "$OP_TOKEN" ]]; then
-        export OP_SERVICE_ACCOUNT_TOKEN="$OP_TOKEN"
-        echo "export OP_SERVICE_ACCOUNT_TOKEN=\"$OP_TOKEN\"" >> "$LOCAL_ZSHRC"
-        info "Saved OP_SERVICE_ACCOUNT_TOKEN to ~/.zshrc.local"
-      fi
-    fi
+  # Sync the keys out of 1Password. `op` reads through the desktop app, so this
+  # step needs 1Password unlocked *now* — the whole point of putting the keys on
+  # disk is that everything afterwards works while it is locked.
+  if command -v op &>/dev/null; then
+    "$HOME/.local/bin/sync-llm-keys" \
+      || warn "Key sync failed — run 'sync-llm-keys' once 1Password is unlocked"
   else
-    info "OP_SERVICE_ACCOUNT_TOKEN already set in environment, skipping prompt"
-  fi
-
-  # Run key sync if op and token are available
-  if command -v op &>/dev/null && [[ -n "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]]; then
-    "$HOME/.local/bin/sync-llm-keys" || warn "Key sync failed, check 1Password token and vault permissions"
+    warn "1password-cli (op) not found; skipping key sync"
   fi
 
   # Headless Git commit signing with ssh-keygen
@@ -286,53 +273,45 @@ elif [[ "$ENVIRONMENT" == "personal" ]]; then
   git config --global user.signingkey "$HOME/.ssh/llm_keys/id_signing"
   git config --global push.autoSetupRemote true
 
-  # Personal SSH config: non-interactive keys for github.com and git-server (Gitea)
-  if [[ ! -f "$SSH_CONFIG" ]]; then
-    cat << 'EOF' > "$SSH_CONFIG"
+  # Personal SSH config: non-interactive keys, written as a managed block at the
+  # TOP of ~/.ssh/config. ssh takes the first value it obtains for any given
+  # option, so this has to sit above the 1Password-agent entries to win.
+  SSH_BLOCK_START="# >>> dotfiles personal keys (managed by install.sh) >>>"
+  SSH_BLOCK_END="# <<< dotfiles personal keys (managed by install.sh) <<<"
+
+  TMP_SSH="$(mktemp)"
+  cat << EOF > "$TMP_SSH"
+$SSH_BLOCK_START
+# Gitea runs its own sshd in a container published on host port 2222, which is a
+# different service from the Pi's own sshd on 22. Matching on the \`git\` login
+# user keeps plain \`ssh git-server\` (User skyler) pointed at the Pi.
+Match host git-server,git-server.lan,192.168.86.25 user git
+    Port 2222
+    IdentityFile ~/.ssh/llm_keys/id_personal_gitea
+    IdentitiesOnly yes
+
 Host github.com
     HostName github.com
     User git
     IdentityFile ~/.ssh/llm_keys/id_personal_github
     IdentitiesOnly yes
-
-Host git-server
-    HostName git-server
-    User git
-    IdentityFile ~/.ssh/llm_keys/id_personal_gitea
-    IdentitiesOnly yes
-EOF
-    chmod 600 "$SSH_CONFIG"
-  else
-    if ! grep -q "id_personal_github" "$SSH_CONFIG"; then
-      TMP_SSH="$(mktemp)"
-      cat << 'EOF' > "$TMP_SSH"
-Host github.com
-    HostName github.com
-    User git
-    IdentityFile ~/.ssh/llm_keys/id_personal_github
-    IdentitiesOnly yes
+$SSH_BLOCK_END
 
 EOF
-      cat "$SSH_CONFIG" >> "$TMP_SSH"
-      mv "$TMP_SSH" "$SSH_CONFIG"
-      chmod 600 "$SSH_CONFIG"
-    fi
 
-    if ! grep -q "id_personal_gitea" "$SSH_CONFIG"; then
-      TMP_SSH="$(mktemp)"
-      cat << 'EOF' > "$TMP_SSH"
-Host git-server
-    HostName git-server
-    User git
-    IdentityFile ~/.ssh/llm_keys/id_personal_gitea
-    IdentitiesOnly yes
-
-EOF
-      cat "$SSH_CONFIG" >> "$TMP_SSH"
-      mv "$TMP_SSH" "$SSH_CONFIG"
-      chmod 600 "$SSH_CONFIG"
-    fi
+  if [[ -f "$SSH_CONFIG" ]]; then
+    cp "$SSH_CONFIG" "$SSH_CONFIG.bak"
+    # Strip a previously-installed block so re-runs replace it rather than
+    # stacking duplicate entries on top of each other.
+    awk -v s="$SSH_BLOCK_START" -v e="$SSH_BLOCK_END" '
+      $0 == s { skip = 1; next }
+      $0 == e { skip = 0; next }
+      !skip
+    ' "$SSH_CONFIG" >> "$TMP_SSH"
   fi
+
+  mv "$TMP_SSH" "$SSH_CONFIG"
+  chmod 600 "$SSH_CONFIG"
 
 elif [[ "$ENVIRONMENT" == "personal-headless" ]]; then
   info "Setting up personal-headless git config (minimal, no 1Password)"

@@ -89,7 +89,7 @@ cp "$SCRIPT_DIR/pure.zsh-theme" "$ZSH_CUSTOM/themes/pure.zsh-theme"
 # ---------------------------------------------------------------------------
 if [[ "$(uname -s)" == "Darwin" ]]; then
   info "Running mac-install.sh"
-  "$SCRIPT_DIR/mac-install.sh"
+  "$SCRIPT_DIR/mac-install.sh" "$ENVIRONMENT"
 
   mkdir -p "$ZSHRC_CONFIG_DIR"
   info "Copying zshrc.darwin to $ZSHRC_CONFIG_DIR/darwin.zsh"
@@ -127,7 +127,7 @@ info "Copying $SRC_ZSHRC to $DEST_ZSHRC"
 cp "$SRC_ZSHRC" "$DEST_ZSHRC"
 
 # ---------------------------------------------------------------------------
-# Git setup
+# Git & SSH setup
 # ---------------------------------------------------------------------------
 info "Setting up git aliases"
 git config set --global alias.co checkout
@@ -136,8 +136,12 @@ git config set --global alias.lg "log --color --graph --pretty=format:'%Cred%h%C
 info "Setting up git pull behaviour"
 git config set --global pull.rebase true
 
+mkdir -p "$HOME/.ssh"
+chmod 700 "$HOME/.ssh"
+SSH_CONFIG="$HOME/.ssh/config"
+
 if [[ "$ENVIRONMENT" == "work" ]]; then
-  info "Setting up work git config"
+  info "Setting up work git & SSH config"
   git config --global user.name "Gabriel Revells"
 
   if git config --global user.email &>/dev/null; then
@@ -146,8 +150,171 @@ if [[ "$ENVIRONMENT" == "work" ]]; then
     read -r -p "Enter work git email: " WORK_EMAIL
     git config --global user.email "$WORK_EMAIL"
   fi
-else
-  info "Setting up personal git config"
+
+  if git config --global work.org &>/dev/null; then
+    WORK_ORG="$(git config --global work.org)"
+    info "Work GitHub org already set ($WORK_ORG), skipping prompt"
+  else
+    read -r -p "Enter work GitHub org name: " WORK_ORG
+    if [[ -n "$WORK_ORG" ]]; then
+      git config --global work.org "$WORK_ORG"
+    fi
+  fi
+
+  if git config --global user.signingkey &>/dev/null; then
+    info "git user.signingkey already set, skipping prompt"
+  else
+    WORK_SIGNING_KEY=""
+    if command -v op &>/dev/null; then
+      WORK_SIGNING_KEY="$(op read "op://qm6ecq2p5hdhwjkz2xuggh5o3m/public key" 2>/dev/null || true)"
+    fi
+    if [[ -z "$WORK_SIGNING_KEY" ]]; then
+      read -r -p "Enter work SSH signing public key: " WORK_SIGNING_KEY
+    fi
+    if [[ -n "$WORK_SIGNING_KEY" ]]; then
+      git config --global user.signingkey "$WORK_SIGNING_KEY"
+    fi
+  fi
+
+  git config --global commit.gpgsign true
+  git config --global gpg.format ssh
+  if [[ "$(uname -s)" == "Darwin" && -e "/Applications/1Password.app/Contents/MacOS/op-ssh-sign" ]]; then
+    git config --global gpg.ssh.program "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
+  fi
+  git config --global push.autoSetupRemote true
+
+  # If work org is configured, rewrite URLs so git operations to work org use github.com-work
+  WORK_ORG="$(git config --global work.org 2>/dev/null || true)"
+  if [[ -n "$WORK_ORG" ]]; then
+    git config --global --unset-all "url.git@github.com-work:${WORK_ORG}/.insteadOf" 2>/dev/null || true
+    git config --global --add "url.git@github.com-work:${WORK_ORG}/.insteadOf" "git@github.com:${WORK_ORG}/"
+    git config --global --add "url.git@github.com-work:${WORK_ORG}/.insteadOf" "https://github.com/${WORK_ORG}/"
+  fi
+
+  # Ensure public key pointer files exist for OpenSSH / 1Password agent routing
+  # (Note: These contain only public key strings so OpenSSH knows which key to request from 1Password agent)
+  if [[ ! -f "$HOME/.ssh/id_work_github.pub" ]]; then
+    WORK_PUB=""
+    if command -v op &>/dev/null; then
+      WORK_PUB="$(op read "op://ggnj4rjhpvkiy6lkhorfwcc5ey/public key" 2>/dev/null || true)"
+    fi
+    if [[ -z "$WORK_PUB" ]]; then
+      WORK_PUB="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBnC+aW2PQg35NieKr5SvpI6SNAQxIBZl5nGvoSmP6Ry"
+    fi
+    printf '%s\n' "$WORK_PUB" > "$HOME/.ssh/id_work_github.pub"
+    chmod 644 "$HOME/.ssh/id_work_github.pub"
+  fi
+
+  if [[ ! -f "$HOME/.ssh/id_personal_github.pub" ]]; then
+    PERSONAL_PUB=""
+    if command -v op &>/dev/null; then
+      PERSONAL_PUB="$(op read "op://hwvx6rmbmencyidm6vedtm4pyu/public key" 2>/dev/null || true)"
+    fi
+    if [[ -z "$PERSONAL_PUB" ]]; then
+      PERSONAL_PUB="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDsW6uJm8VbdaJFgycP6Gft1YTGLgDge5iwSIJ0Hj6qK"
+    fi
+    printf '%s\n' "$PERSONAL_PUB" > "$HOME/.ssh/id_personal_github.pub"
+    chmod 644 "$HOME/.ssh/id_personal_github.pub"
+  fi
+
+  # Work SSH config: route work repos to work key, personal repos to personal key via 1Password desktop agent
+  AGENT_SOCK="~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+  TMP_SSH="$(mktemp)"
+  cat << EOF > "$TMP_SSH"
+Host github.com-work
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_work_github.pub
+    IdentitiesOnly yes
+    IdentityAgent "$AGENT_SOCK"
+
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_personal_github.pub
+    IdentitiesOnly yes
+    IdentityAgent "$AGENT_SOCK"
+
+Host git-server
+    HostName git-server
+    User git
+    IdentityAgent "$AGENT_SOCK"
+
+Host *
+    IdentityAgent "$AGENT_SOCK"
+EOF
+  mv "$TMP_SSH" "$SSH_CONFIG"
+  chmod 600 "$SSH_CONFIG"
+
+elif [[ "$ENVIRONMENT" == "personal" ]]; then
+  info "Setting up personal git & LLM commit signing config"
+  git config --global user.name "Skyler Revells"
+  git config --global user.email "wowza7125@icloud.com"
+
+  # Install sync-llm-keys script
+  mkdir -p "$HOME/.local/bin"
+  cp "$SCRIPT_DIR/sync-llm-keys.sh" "$HOME/.local/bin/sync-llm-keys"
+  chmod +x "$HOME/.local/bin/sync-llm-keys"
+
+  # Sync the keys out of 1Password. `op` reads through the desktop app, so this
+  # step needs 1Password unlocked *now* — the whole point of putting the keys on
+  # disk is that everything afterwards works while it is locked.
+  if command -v op &>/dev/null; then
+    "$HOME/.local/bin/sync-llm-keys" \
+      || warn "Key sync failed — run 'sync-llm-keys' once 1Password is unlocked"
+  else
+    warn "1password-cli (op) not found; skipping key sync"
+  fi
+
+  # Headless Git commit signing with ssh-keygen
+  git config --global commit.gpgsign true
+  git config --global gpg.format ssh
+  git config --global gpg.ssh.program "ssh-keygen"
+  git config --global user.signingkey "$HOME/.ssh/llm_keys/id_signing"
+  git config --global push.autoSetupRemote true
+
+  # Personal SSH config: non-interactive keys, written as a managed block at the
+  # TOP of ~/.ssh/config. ssh takes the first value it obtains for any given
+  # option, so this has to sit above the 1Password-agent entries to win.
+  SSH_BLOCK_START="# >>> dotfiles personal keys (managed by install.sh) >>>"
+  SSH_BLOCK_END="# <<< dotfiles personal keys (managed by install.sh) <<<"
+
+  TMP_SSH="$(mktemp)"
+  cat << EOF > "$TMP_SSH"
+$SSH_BLOCK_START
+# Gitea runs its own sshd in a container published on host port 2222, which is a
+# different service from the Pi's own sshd on 22. Matching on the \`git\` login
+# user keeps plain \`ssh git-server\` (User skyler) pointed at the Pi.
+Match host git-server,git-server.lan,192.168.86.25 user git
+    Port 2222
+    IdentityFile ~/.ssh/llm_keys/id_personal_gitea
+    IdentitiesOnly yes
+
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/llm_keys/id_personal_github
+    IdentitiesOnly yes
+$SSH_BLOCK_END
+
+EOF
+
+  if [[ -f "$SSH_CONFIG" ]]; then
+    cp "$SSH_CONFIG" "$SSH_CONFIG.bak"
+    # Strip a previously-installed block so re-runs replace it rather than
+    # stacking duplicate entries on top of each other.
+    awk -v s="$SSH_BLOCK_START" -v e="$SSH_BLOCK_END" '
+      $0 == s { skip = 1; next }
+      $0 == e { skip = 0; next }
+      !skip
+    ' "$SSH_CONFIG" >> "$TMP_SSH"
+  fi
+
+  mv "$TMP_SSH" "$SSH_CONFIG"
+  chmod 600 "$SSH_CONFIG"
+
+elif [[ "$ENVIRONMENT" == "personal-headless" ]]; then
+  info "Setting up personal-headless git config (minimal, no 1Password)"
   git config --global user.name "Skyler Revells"
   git config --global user.email "wowza7125@icloud.com"
 fi

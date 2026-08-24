@@ -8,6 +8,21 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib.sh"
 
+ENVIRONMENT=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --env)
+      ENVIRONMENT="${2:-}"
+      shift 2
+      ;;
+    work|personal|personal-headless)
+      ENVIRONMENT="$1"
+      shift
+      ;;
+    *) shift ;;
+  esac
+done
+
 if [[ ! -d /opt/homebrew/bin ]]; then
   info "Installing Homebrew..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -60,3 +75,13 @@ else
   info "Installing jq..."
   brew install jq
 fi
+
+if [[ "$ENVIRONMENT" == "personal" || "$ENVIRONMENT" == "work" ]]; then
+  if brew list 1password-cli &>/dev/null; then
+    info "1password-cli already installed, skipping"
+  else
+    info "Installing 1password-cli..."
+    brew install 1password-cli
+  fi
+fi
+

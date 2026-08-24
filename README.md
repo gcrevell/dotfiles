@@ -7,9 +7,9 @@ Personal dotfiles for setting up a zsh environment on macOS and Linux.
 ```bash
 git clone <this-repo> ~/src/dotfiles
 cd ~/src/dotfiles
-./install.sh --env personal            # personal git config
-./install.sh --env personal-headless   # personal git config, same flow as above
-./install.sh --env work                # work git config instead
+./install.sh --env personal            # personal git config + LLM headless signing & key sync from 1P
+./install.sh --env personal-headless   # minimal personal git config (no 1Password / no prompts)
+./install.sh --env work                # work git & SSH config (interactive 1P desktop signing & URL routing)
 ```
 
 Restart your shell (or run `source ~/.zshrc`) afterwards.
@@ -20,14 +20,17 @@ Re-running `install.sh` is safe — it skips anything already installed and won'
 
 - **zsh** as the shell, installed via the system package manager on Linux (apt/dnf/pacman/zypper/apk) and set as the default shell (macOS ships with zsh already).
 - **oh-my-zsh**, installed unattended, with the `pure` theme and these plugins: `git`, `gh`, `z`, `colored-man-pages`, `command-not-found`, `zsh-autosuggestions`, `zsh-syntax-highlighting`.
-- **On macOS**: Homebrew (if missing), the `claude-code` cask, and `git-recent`.
+- **On macOS**: Homebrew (if missing), `1password-cli` (`personal`/`work`), the `claude-code` cask, and `git-recent`.
 - **direnv**, installed via Homebrew on macOS or the system package manager on Linux, and hooked into `~/.zshrc`.
 - **gh** (GitHub CLI), installed via Homebrew on macOS or the system package manager on Linux. On apt systems it adds GitHub's own apt repo first, since Ubuntu/Debian only ship `gh` in newer releases — that repo covers `arm64`/`armhf`, so Raspberry Pi works.
 - **jq**, installed via Homebrew on macOS or the system package manager on Linux. Used to merge the Claude Code settings below.
 - **`~/.zshrc`**: history settings, `EDITOR`/`VISUAL`/`LANG`, `PATH` additions (`~/.bin`, `~/.local/bin`), aliases (`ll`, `la`, `..`, `...`, `grep`, `gs`, `gd`, `gco`, `gc`), and the `direnv` shell hook.
 - **OS-specific zsh config** under `~/.zshrc-config/`, sourced automatically from `~/.zshrc` (e.g. `zshrc.darwin` becomes `~/.zshrc-config/darwin.zsh`, adding Homebrew's shellenv and Mac-only aliases like `flushdns`, `showfiles`, `hidefiles`, `vsc`).
 - **Git aliases**: `co` (checkout), `lg` (pretty log graph).
-- **Git identity**: `--env` is required and must be `work`, `personal`, or `personal-headless`. `work` sets `user.name` to "Gabriel Revells" and prompts for a work email (only if `user.email` isn't already set); `personal` and `personal-headless` set the personal identity ("Skyler Revells" / iCloud email) and are otherwise identical.
+- **Git & SSH identity**: `--env` is required and must be `work`, `personal`, or `personal-headless`:
+  - `work`: sets `user.name` to "Gabriel Revells", prompts for work email, work org, and signing key (if not already set), sets up interactive 1Password commit signing (`op-ssh-sign`) and URL rewriting for the work org.
+  - `personal`: sets `user.name` to "Skyler Revells" / iCloud email, prompts for 1Password Service Account Token (if not already set, saved to `~/.zshrc.local`), installs `sync-llm-keys` to export signing/push keys headlessly from the `LLM-Automation` vault, and sets up non-interactive `ssh-keygen` signing and push keys `id_personal_github` and `id_personal_gitea` (for `git-server`).
+  - `personal-headless`: sets minimal personal identity with no 1Password dependencies or prompts.
 - **Claude Code settings**: `~/.claude/settings.json` is rebuilt from the tracked `claude-settings.json` (shared defaults, re-applied every run) layered over whatever is already in the file, with `~/.claude-settings.local.json` applied last so per-machine overrides always win.
 
 Your existing `~/.zshrc` (if different from this repo's) is backed up to `~/.zshrc.local`, which is sourced at the end of the installed `~/.zshrc` for untracked, machine-specific overrides.

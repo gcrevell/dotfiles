@@ -11,9 +11,9 @@ Personal dotfiles repo for setting up zsh (via oh-my-zsh) on macOS and Linux. Sm
 There's no test suite. To validate changes, run the install flow itself:
 
 ```bash
-./install.sh --env personal            # personal git config (Skyler Revells / icloud email)
-./install.sh --env personal-headless   # same flow as --env personal
-./install.sh --env work                # work git config (Gabriel Revells, prompts for work email if not already set)
+./install.sh --env personal            # personal git config + LLM headless signing & key sync from 1P
+./install.sh --env personal-headless   # minimal personal git config (no 1Password / no prompts)
+./install.sh --env work                # work git & SSH config (interactive 1P desktop signing & URL routing)
 ```
 
 - `linux-install.sh` and `mac-install.sh` are also safe to run standalone (each `source`s `lib.sh` itself).
@@ -26,9 +26,12 @@ There's no test suite. To validate changes, run the install flow itself:
 
 1. On Linux, runs `linux-install.sh` first (installs zsh via whichever package manager is present — apt/dnf/pacman/zypper/apk — and chsh's it as the default shell, then `direnv`, `jq`, and `gh`) **before** oh-my-zsh is installed, since oh-my-zsh requires zsh to exist. `gh` is the one package not available from the stock apt repos on older Ubuntu/Debian, so the apt branch registers GitHub's own repo (`cli.github.com/packages`) before installing.
 2. Installs oh-my-zsh itself (unattended) plus the `zsh-autosuggestions` and `zsh-syntax-highlighting` plugins if missing, and copies `pure.zsh-theme` into oh-my-zsh's custom themes dir.
-3. On macOS, runs `mac-install.sh` (installs Homebrew, the `claude-code` cask, `git-recent`, `direnv`, `gh`, `jq`, and `tea` — the Gitea CLI, macOS-only), then copies `zshrc.darwin` into `~/.zshrc-config/darwin.zsh`.
+3. On macOS, runs `mac-install.sh` with the environment flag (installs Homebrew, `1password-cli` for `personal`/`work`, the `claude-code` cask, `git-recent`, `direnv`, `gh`, `jq`, and `tea` — the Gitea CLI, macOS-only), then copies `zshrc.darwin` into `~/.zshrc-config/darwin.zsh`.
 4. Backs up any existing `~/.zshrc` to `~/.zshrc.local` (or to `~/.zshrc.bak` if `.zshrc.local` already exists), then installs this repo's `zshrc` as `~/.zshrc`.
-5. Sets up global git aliases (`co`, `lg`), and either personal or work `user.name`/`user.email` depending on the required `--env` flag (`work`, `personal`, or `personal-headless` — the latter two are currently identical).
+5. Sets up global git aliases (`co`, `lg`), and configures Git and SSH per `--env`:
+   - `work`: Interactive 1Password setup (`user.name = "Gabriel Revells"`, prompts for work email, work org, and public signing key if not set; configures `op-ssh-sign`, 1P `IdentityAgent`, and URL rewriting for the work org).
+   - `personal`: LLM setup (`user.name = "Skyler Revells"`, iCloud email; prompts for 1P Service Account Token if not set and persists in `~/.zshrc.local`; installs `sync-llm-keys` to `~/.local/bin/sync-llm-keys`; configures headless signing with `ssh-keygen` and non-interactive push keys `id_personal_github` and `id_personal_gitea` for `git-server`).
+   - `personal-headless`: Minimal personal setup with no 1Password CLI, no token/org prompts, and no signing overrides.
 6. Rebuilds `~/.claude/settings.json` from three layers with `jq` — the existing file, then the tracked `claude-settings.json`, then `~/.claude-settings.local.json` — each overwriting the one before it. Skipped with a warning if `jq` isn't on `PATH`.
 
 Key convention: **OS-specific zsh config is layered in, not hardcoded into `zshrc`.** The tracked `zshrc` sources every `*.zsh` file under `~/.zshrc-config/` (populated by `install.sh` per-OS, e.g. `darwin.zsh` from `zshrc.darwin`) and finally sources `~/.zshrc.local` for untracked, machine-specific overrides. When adding OS-specific shell config, add a new `zshrc.<os>` file and wire its install step into `install.sh`, rather than adding conditionals to `zshrc` directly.

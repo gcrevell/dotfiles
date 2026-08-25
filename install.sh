@@ -276,6 +276,22 @@ elif [[ "$ENVIRONMENT" == "personal" ]]; then
   # Personal SSH config: non-interactive keys, written as a managed block at the
   # TOP of ~/.ssh/config. ssh takes the first value it obtains for any given
   # option, so this has to sit above the 1Password-agent entries to win.
+  #
+  # "First value wins" only helps for options this block actually sets, so every
+  # entry below pins IdentityAgent none. Without it a `Host *` stanza further
+  # down supplies the 1Password socket, and IdentitiesOnly does NOT save you:
+  # it restricts *which* identities may be offered, not whether ssh hands the
+  # signature to an agent holding the same key. When it does, a locked
+  # 1Password fails the connection outright --
+  #
+  #   sign_and_send_pubkey: signing failed for ED25519 ".../id_personal_github"
+  #     from agent: communication with agent failed
+  #   git@github.com: Permission denied (publickey).
+  #
+  # -- which is the exact failure these on-disk keys exist to prevent. Only
+  # GitHub hit it, and only because that key is also in the vault; the Gitea
+  # one escaped by being a different key from the vault's. That is luck, not
+  # design, so both are pinned.
   SSH_BLOCK_START="# >>> dotfiles personal keys (managed by install.sh) >>>"
   SSH_BLOCK_END="# <<< dotfiles personal keys (managed by install.sh) <<<"
 
@@ -289,12 +305,14 @@ Match host git-server,git-server.lan,192.168.86.25 user git
     Port 2222
     IdentityFile ~/.ssh/llm_keys/id_personal_gitea
     IdentitiesOnly yes
+    IdentityAgent none
 
 Host github.com
     HostName github.com
     User git
     IdentityFile ~/.ssh/llm_keys/id_personal_github
     IdentitiesOnly yes
+    IdentityAgent none
 $SSH_BLOCK_END
 
 EOF

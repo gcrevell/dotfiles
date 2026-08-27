@@ -57,6 +57,8 @@ alias gd="git diff"
 alias gco="git checkout"
 alias gc="git commit"
 alias gpu="git pull"
+alias glg="git lg"
+alias gr="git recent"
 
 # ---------------------------------------------------------------------------
 # Extra config (e.g. OS-specific files installed by install.sh)

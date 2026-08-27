@@ -22,7 +22,7 @@ Re-running `install.sh` is safe — it skips anything already installed and won'
 - **oh-my-zsh**, installed unattended, with the `pure` theme and these plugins: `git`, `gh`, `z`, `colored-man-pages`, `command-not-found`, `zsh-autosuggestions`, `zsh-syntax-highlighting`.
 - **On macOS**: Homebrew (if missing), `1password-cli` (`personal`/`work`), the `claude-code` cask, and `git-recent`.
 - **direnv**, installed via Homebrew on macOS or the system package manager on Linux, and hooked into `~/.zshrc`.
-- **gh** (GitHub CLI), installed via Homebrew on macOS or the system package manager on Linux. On apt systems it adds GitHub's own apt repo first, since Ubuntu/Debian only ship `gh` in newer releases — that repo covers `arm64`/`armhf`, so Raspberry Pi works.
+- **gh** (GitHub CLI), installed via Homebrew on macOS or the system package manager on Linux, except under `personal-headless` where it's skipped. On apt systems it adds GitHub's own apt repo first, since Ubuntu/Debian only ship `gh` in newer releases — that repo covers `arm64`/`armhf`, so Raspberry Pi works.
 - **jq**, installed via Homebrew on macOS or the system package manager on Linux. Used to merge the Claude Code settings below.
 - **`~/.zshrc`**: history settings, `EDITOR`/`VISUAL`/`LANG`, `PATH` additions (`~/.bin`, `~/.local/bin`), aliases (`ll`, `la`, `..`, `...`, `grep`, `gs`, `gd`, `gco`, `gc`), and the `direnv` shell hook.
 - **OS-specific zsh config** under `~/.zshrc-config/`, sourced automatically from `~/.zshrc` (e.g. `zshrc.darwin` becomes `~/.zshrc-config/darwin.zsh`, adding Homebrew's shellenv and Mac-only aliases like `flushdns`, `showfiles`, `hidefiles`, `vsc`).

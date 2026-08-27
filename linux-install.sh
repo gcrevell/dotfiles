@@ -8,6 +8,21 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib.sh"
 
+ENVIRONMENT=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --env)
+      ENVIRONMENT="${2:-}"
+      shift 2
+      ;;
+    work|personal|personal-headless)
+      ENVIRONMENT="$1"
+      shift
+      ;;
+    *) shift ;;
+  esac
+done
+
 if command -v zsh &>/dev/null; then
   info "zsh already installed, skipping"
 else
@@ -78,7 +93,9 @@ else
   fi
 fi
 
-if command -v gh &>/dev/null; then
+if [[ "$ENVIRONMENT" == "personal-headless" ]]; then
+  info "personal-headless environment, skipping gh (nothing on these hosts uses it)"
+elif command -v gh &>/dev/null; then
   info "gh already installed, skipping"
 else
   info "Installing gh..."

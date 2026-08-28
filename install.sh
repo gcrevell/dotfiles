@@ -54,7 +54,7 @@ fi
 # ---------------------------------------------------------------------------
 if [[ "$(uname -s)" == "Linux" ]]; then
   info "Running linux-install.sh"
-  "$SCRIPT_DIR/linux-install.sh"
+  "$SCRIPT_DIR/linux-install.sh" "$ENVIRONMENT"
 fi
 
 # ---------------------------------------------------------------------------

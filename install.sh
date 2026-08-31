@@ -99,6 +99,10 @@ fi
 # ---------------------------------------------------------------------------
 # Back up the existing ~/.zshrc to ~/.zshrc.local
 # ---------------------------------------------------------------------------
+# The repo's own header line identifies a ~/.zshrc as ours (any revision, not
+# just the current one) -- see below.
+ZSHRC_HEADER="$(head -n 1 "$SRC_ZSHRC")"
+
 if [[ -f "$DEST_ZSHRC" || -L "$DEST_ZSHRC" ]]; then
   if cmp -s "$DEST_ZSHRC" "$SRC_ZSHRC" 2>/dev/null; then
     info "~/.zshrc already matches this repo's zshrc, nothing to back up"
@@ -111,13 +115,35 @@ if [[ -f "$DEST_ZSHRC" || -L "$DEST_ZSHRC" ]]; then
     # It is byte-identical to the stock template, so it holds nothing of ours.
     info "~/.zshrc is oh-my-zsh's stock template, discarding rather than backing up"
     rm -f "$DEST_ZSHRC"
+  elif [[ "$(head -n 1 "$DEST_ZSHRC" 2>/dev/null)" == "$ZSHRC_HEADER" ]]; then
+    # An older revision of this repo's own zshrc isn't byte-identical to the
+    # current one (cmp above already ruled that out) but still carries our
+    # header, so it holds nothing the repo doesn't already have. Backing it up
+    # as ~/.zshrc.local would let it source itself forever, since it too ends
+    # with `source ~/.zshrc.local`.
+    info "~/.zshrc is an older revision of this repo's own zshrc, discarding rather than backing up"
+    rm -f "$DEST_ZSHRC"
   elif [[ -e "$LOCAL_ZSHRC" ]]; then
     warn "~/.zshrc.local already exists, leaving existing ~/.zshrc in place at $DEST_ZSHRC.bak"
     mv "$DEST_ZSHRC" "$DEST_ZSHRC.bak"
+  elif grep -qF 'source "$HOME/.zshrc.local"' "$DEST_ZSHRC" 2>/dev/null; then
+    # Belt and braces against the same self-sourcing loop by any other means:
+    # never write a ~/.zshrc.local that would source itself.
+    warn "~/.zshrc sources ~/.zshrc.local itself, stripping that line before backing it up to ~/.zshrc.local"
+    grep -vF 'source "$HOME/.zshrc.local"' "$DEST_ZSHRC" > "$LOCAL_ZSHRC"
+    rm -f "$DEST_ZSHRC"
   else
     info "Backing up current ~/.zshrc to ~/.zshrc.local"
     mv "$DEST_ZSHRC" "$LOCAL_ZSHRC"
   fi
+fi
+
+# On a first install, ~/.zshrc.local won't exist yet unless something genuinely
+# foreign was just backed up into it above. Create it empty so it's still a
+# clean, obvious place for machine-specific overrides.
+if [[ ! -e "$LOCAL_ZSHRC" ]]; then
+  info "Creating empty ~/.zshrc.local"
+  touch "$LOCAL_ZSHRC"
 fi
 
 # ---------------------------------------------------------------------------

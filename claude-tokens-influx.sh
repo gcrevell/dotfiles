@@ -8,29 +8,32 @@
 # This script is the half that knows *where* the data goes, which is why it
 # lives here and reads every network detail out of an untracked file.
 #
-# Config comes from ~/.zshrc.local, as plain zsh variables:
+# Config comes from ~/.config/claude-tokens/config.vars, a dedicated file
+# holding nothing but variable assignments — not ~/.zshrc.local, which is free
+# to carry arbitrary shell logic that has no business running inside a launchd
+# job just because this script needs to source it to read a few values out of
+# a process that never ran ~/.zshrc in the first place:
 #
-#   export CLAUDE_TOKENS_INFLUX_URL="https://influx.example"   # no trailing /
-#   export CLAUDE_TOKENS_INFLUX_TOKEN="..."                    # write-only!
-#   export CLAUDE_TOKENS_INFLUX_ORG="..."
-#   export CLAUDE_TOKENS_INFLUX_BUCKET="..."
-#   export CLAUDE_TOKENS_HOST="..."                            # stable host tag
+#   CLAUDE_TOKENS_INFLUX_URL="https://influx.example"   # no trailing /
+#   CLAUDE_TOKENS_INFLUX_TOKEN="..."                    # write-only!
+#   CLAUDE_TOKENS_INFLUX_ORG="..."
+#   CLAUDE_TOKENS_INFLUX_BUCKET="..."
+#   CLAUDE_TOKENS_HOST="..."                            # stable host tag
+#   CLAUDE_TOKENS_REPO_DIR="..."                        # optional, defaults to ~/src/claude-token-influx
 #
-# None of these have defaults on purpose. This repo is public, so a default
-# would mean committing a hostname or bucket name; and a *wrong* default is
-# worse than no default, since the host tag in particular silently fragments
-# the series rather than failing.
+# Only CLAUDE_TOKENS_REPO_DIR has a default. This repo is public, so a default
+# for any of the rest would mean committing a hostname or bucket name; and a
+# *wrong* default is worse than no default, since the host tag in particular
+# silently fragments the series rather than failing.
 #
-# Why ~/.zshrc.local and not 1Password: `op` blocks on a GUI prompt when the
-# vault is locked, and a background launchd job hanging forever on an invisible
-# dialog is the worst available failure mode.
+# Why not 1Password: `op` blocks on a GUI prompt when the vault is locked, and
+# a background launchd job hanging forever on an invisible dialog is the worst
+# available failure mode.
 
 set -uo pipefail
 
 LABEL="claude-tokens-influx"
-LOCAL_ZSHRC="$HOME/.zshrc.local"
-REPO_DIR="${CLAUDE_TOKENS_REPO_DIR:-$HOME/src/claude-token-influx}"
-COLLECTOR="$REPO_DIR/claude-tokens.sh"
+CONFIG_FILE="$HOME/.config/claude-tokens/config.vars"
 LOG="$HOME/Library/Logs/${LABEL}.log"
 LOG_MAX_LINES=500
 
@@ -55,7 +58,7 @@ die() { log "ERROR: $*"; trim_log; exit 1; }
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-[[ -r "$LOCAL_ZSHRC" ]] || die "$LOCAL_ZSHRC not readable"
+[[ -r "$CONFIG_FILE" ]] || die "$CONFIG_FILE not readable"
 
 # The token lives in this file, so it should not be world-readable. Warn rather
 # than fail: refusing to run would turn a permissions nit into silent data loss.
@@ -63,17 +66,18 @@ die() { log "ERROR: $*"; trim_log; exit 1; }
 # `stat -f '%A'` is BSD/macOS. On GNU coreutils -f is --file-system, which
 # SUCCEEDS and prints a block-size report, so testing the exit status is not
 # enough to tell the two apart — only accept output actually shaped like a mode.
-zshrc_mode="$(stat -f '%A' "$LOCAL_ZSHRC" 2>/dev/null)"
-[[ "$zshrc_mode" =~ '^[0-7]{3,4}$' ]] || zshrc_mode="$(stat -c '%a' "$LOCAL_ZSHRC" 2>/dev/null)"
-if [[ "$zshrc_mode" =~ '^[0-7]{3,4}$' && "${zshrc_mode: -3}" != "600" ]]; then
-  log "WARNING: $LOCAL_ZSHRC is mode $zshrc_mode, not 600, and holds an InfluxDB token"
+config_mode="$(stat -f '%A' "$CONFIG_FILE" 2>/dev/null)"
+[[ "$config_mode" =~ '^[0-7]{3,4}$' ]] || config_mode="$(stat -c '%a' "$CONFIG_FILE" 2>/dev/null)"
+if [[ "$config_mode" =~ '^[0-7]{3,4}$' && "${config_mode: -3}" != "600" ]]; then
+  log "WARNING: $CONFIG_FILE is mode $config_mode, not 600, and holds an InfluxDB token"
 fi
 
-# stdout of the source is redirected into the log: a ~/.zshrc.local that echoes
-# something must not end up interleaved with anything we parse. Failures here
-# are not fatal on their own — the variable check below is the real gate, and
-# it gives a far better message than a zsh parse error would.
-source "$LOCAL_ZSHRC" >> "$LOG" 2>&1 || log "WARNING: $LOCAL_ZSHRC exited non-zero when sourced"
+# stdout of the source is redirected into the log: this file is meant to hold
+# only variable assignments, but sourcing still runs it as zsh, so anything
+# unexpected in it must not end up interleaved with anything we parse.
+# Failures here are not fatal on their own — the variable check below is the
+# real gate, and it gives a far better message than a zsh parse error would.
+source "$CONFIG_FILE" >> "$LOG" 2>&1 || log "WARNING: $CONFIG_FILE exited non-zero when sourced"
 
 missing=()
 for var in CLAUDE_TOKENS_INFLUX_URL CLAUDE_TOKENS_INFLUX_TOKEN \
@@ -81,7 +85,10 @@ for var in CLAUDE_TOKENS_INFLUX_URL CLAUDE_TOKENS_INFLUX_TOKEN \
            CLAUDE_TOKENS_HOST; do
   [[ -n "${(P)var:-}" ]] || missing+=("$var")
 done
-(( ${#missing} == 0 )) || die "unset in $LOCAL_ZSHRC: ${missing[*]}"
+(( ${#missing} == 0 )) || die "unset in $CONFIG_FILE: ${missing[*]}"
+
+REPO_DIR="${CLAUDE_TOKENS_REPO_DIR:-$HOME/src/claude-token-influx}"
+COLLECTOR="$REPO_DIR/claude-tokens.sh"
 
 # ---------------------------------------------------------------------------
 # Collect

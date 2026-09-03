@@ -85,3 +85,75 @@ if [[ "$ENVIRONMENT" == "personal" || "$ENVIRONMENT" == "work" ]]; then
   fi
 fi
 
+# ---------------------------------------------------------------------------
+# Claude Code token usage -> InfluxDB (personal only)
+#
+# Two halves. The collector is a separate public repo, cloned below; it walks
+# ~/.claude/projects and prints influx line protocol, and writes nothing. The
+# wrapper and launchd agent in *this* repo are what run it on a schedule and
+# POST the result.
+#
+# personal only. The headless Pi fleet ships the same measurement a different
+# way (Telegraf's exec input, configured by home-ansible), and running both on
+# one machine would write the same series twice.
+# ---------------------------------------------------------------------------
+if [[ "$ENVIRONMENT" == "personal" ]]; then
+  TOKENS_REPO="https://github.com/gcrevell/claude-token-influx.git"
+  TOKENS_DIR="$HOME/src/claude-token-influx"
+  TOKENS_LABEL="com.skyler.claude-tokens"
+  TOKENS_PLIST="$HOME/Library/LaunchAgents/$TOKENS_LABEL.plist"
+  TOKENS_CONFIG_DIR="$HOME/.config/claude-tokens"
+  TOKENS_CONFIG="$TOKENS_CONFIG_DIR/config.vars"
+
+  if [[ -d "$TOKENS_DIR/.git" ]]; then
+    info "Updating claude-token-influx checkout"
+    # Only fast-forward. If the checkout has local work or sits on another
+    # branch, say so and move on rather than throwing away someone's commits.
+    git -C "$TOKENS_DIR" pull --ff-only --quiet \
+      || warn "Could not fast-forward $TOKENS_DIR — leaving it as-is"
+  else
+    info "Cloning claude-token-influx into $TOKENS_DIR"
+    mkdir -p "$(dirname "$TOKENS_DIR")"
+    git clone --quiet "$TOKENS_REPO" "$TOKENS_DIR"
+  fi
+
+  info "Installing claude-tokens-influx to ~/.local/bin"
+  mkdir -p "$HOME/.local/bin"
+  cp "$SCRIPT_DIR/claude-tokens-influx.sh" "$HOME/.local/bin/claude-tokens-influx"
+  chmod +x "$HOME/.local/bin/claude-tokens-influx"
+
+  # The token lives in $TOKENS_CONFIG, so tighten the directory and the file
+  # (if it's there yet) whether or not it's configured — better to fix the
+  # mode before the secret arrives.
+  mkdir -p "$TOKENS_CONFIG_DIR"
+  chmod 700 "$TOKENS_CONFIG_DIR"
+  [[ -e "$TOKENS_CONFIG" ]] && chmod 600 "$TOKENS_CONFIG"
+
+  info "Installing $TOKENS_LABEL launchd agent"
+  mkdir -p "$HOME/Library/LaunchAgents"
+  sed "s|__HOME__|$HOME|g" "$SCRIPT_DIR/claude-tokens.plist" > "$TOKENS_PLIST"
+
+  # bootout before bootstrap so a changed plist actually takes effect; launchd
+  # keeps serving the old definition otherwise. A not-yet-loaded agent makes
+  # bootout exit non-zero, which is fine and expected on a first install.
+  launchctl bootout "gui/$UID/$TOKENS_LABEL" 2>/dev/null || true
+  if launchctl bootstrap "gui/$UID" "$TOKENS_PLIST" 2>/dev/null; then
+    info "Loaded $TOKENS_LABEL (hourly)"
+  else
+    warn "Could not load $TOKENS_LABEL — try: launchctl bootstrap gui/$UID $TOKENS_PLIST"
+  fi
+
+  # The agent is useless until $TOKENS_CONFIG names a destination, and
+  # RunAtLoad means it has already failed once by now. Point at the log rather
+  # than letting it fail invisibly every hour.
+  if ! grep -q 'CLAUDE_TOKENS_INFLUX_URL' "$TOKENS_CONFIG" 2>/dev/null; then
+    warn "claude-tokens is installed but not configured. Create $TOKENS_CONFIG:"
+    warn "  CLAUDE_TOKENS_INFLUX_URL=... CLAUDE_TOKENS_INFLUX_TOKEN=..."
+    warn "  CLAUDE_TOKENS_INFLUX_ORG=... CLAUDE_TOKENS_INFLUX_BUCKET=..."
+    warn "  CLAUDE_TOKENS_HOST=..."
+    warn "  CLAUDE_TOKENS_REPO_DIR=...   # optional, defaults to $TOKENS_DIR"
+    warn "Then: launchctl kickstart -k gui/$UID/$TOKENS_LABEL"
+    warn "Log: ~/Library/Logs/claude-tokens-influx.log"
+  fi
+fi
+

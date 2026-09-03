@@ -49,23 +49,28 @@ The work is split across two repos on purpose:
 - **this repo** — `claude-tokens-influx.sh` (the wrapper that runs it and POSTs the result) and `claude-tokens.plist` (the launchd agent).
 
 `install.sh` handles the clone, the wrapper, and loading the agent. What it
-cannot do is supply the destination, which is untracked. Add to `~/.zshrc.local`:
+cannot do is supply the destination, which is untracked. Create
+`~/.config/claude-tokens/config.vars`:
 
 ```zsh
-export CLAUDE_TOKENS_INFLUX_URL="https://influx.example"   # no trailing slash
-export CLAUDE_TOKENS_INFLUX_TOKEN="..."                    # write-only, single bucket
-export CLAUDE_TOKENS_INFLUX_ORG="..."
-export CLAUDE_TOKENS_INFLUX_BUCKET="..."
-export CLAUDE_TOKENS_HOST="..."                            # stable host tag
+CLAUDE_TOKENS_INFLUX_URL="https://influx.example"   # no trailing slash
+CLAUDE_TOKENS_INFLUX_TOKEN="..."                    # write-only, single bucket
+CLAUDE_TOKENS_INFLUX_ORG="..."
+CLAUDE_TOKENS_INFLUX_BUCKET="..."
+CLAUDE_TOKENS_HOST="..."                            # stable host tag
+CLAUDE_TOKENS_REPO_DIR="..."                        # optional, defaults to ~/src/claude-token-influx
 ```
 
 Then `launchctl kickstart -k gui/$UID/com.skyler.claude-tokens`.
 
-None of these have defaults. This repo is public, so a default would mean
-committing a hostname or a bucket name; and for `CLAUDE_TOKENS_HOST` a wrong
-default is worse than none, because a drifting host tag fragments the series
-silently instead of failing. `install.sh` chmods `~/.zshrc.local` to `600`,
-since the token now lives there.
+Only `CLAUDE_TOKENS_REPO_DIR` has a default. This repo is public, so a default
+for any of the rest would mean committing a hostname or a bucket name; and for
+`CLAUDE_TOKENS_HOST` a wrong default is worse than none, because a drifting
+host tag fragments the series silently instead of failing. `install.sh` chmods
+the `~/.config/claude-tokens` directory to `700` and the file to `600`, since
+it's a dedicated file that holds nothing but this config — not
+`~/.zshrc.local`, which is free to carry arbitrary shell logic that has no
+business running inside a launchd job.
 
 **The token is deliberately not read from 1Password at run time.** `op` blocks
 on a GUI prompt when the vault is locked, and a background launchd job hanging
@@ -91,4 +96,4 @@ Some behaviour worth knowing before debugging it:
 - **Empty output is treated as an error here.** Zero lines is legitimate on a machine that has never run Claude Code, but on this laptop it means something broke, so the wrapper refuses to POST an empty body and call it a success.
 - **Counts only.** Seven integers and three tags (`host`, `project`, `model`). No prompt text, paths, or tool output ever leaves the machine.
 - **Run it at least monthly.** Claude Code deletes transcripts older than `cleanupPeriodDays` (default 30). Hourly covers this many times over; it only bites a machine left off for over a month.
-- **Token rotation:** the value in `~/.zshrc.local` is the only copy. Losing it means minting a new write-only, single-bucket token, not restoring one.
+- **Token rotation:** the value in `~/.config/claude-tokens/config.vars` is the only copy. Losing it means minting a new write-only, single-bucket token, not restoring one.

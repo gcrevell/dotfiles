@@ -19,6 +19,7 @@ ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 OMZ_TEMPLATE="${ZSH:-$HOME/.oh-my-zsh}/templates/zshrc.zsh-template"
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 LOCAL_CLAUDE_SETTINGS="$HOME/.claude-settings.local.json"
+CLAUDE_THEMES_DIR="$HOME/.claude/themes"
 
 source "$SCRIPT_DIR/lib.sh"
 
@@ -82,7 +83,7 @@ else
   git clone https://github.com/zsh-users/zsh-syntax-highlighting $ZSH_CUSTOM/plugins/zsh-syntax-highlighting
 fi
 
-cp "$SCRIPT_DIR/pure.zsh-theme" "$ZSH_CUSTOM/themes/pure.zsh-theme"
+cp "$SCRIPT_DIR/themes/pure.zsh-theme" "$ZSH_CUSTOM/themes/pure.zsh-theme"
 
 # ---------------------------------------------------------------------------
 # Mac specific install
@@ -362,6 +363,12 @@ elif [[ "$ENVIRONMENT" == "personal-headless" ]]; then
   git config --global user.name "Skyler Revells"
   git config --global user.email "wowza7125@icloud.com"
 fi
+
+# ---------------------------------------------------------------------------
+# Claude Code custom themes
+# ---------------------------------------------------------------------------
+mkdir -p "$CLAUDE_THEMES_DIR"
+cp "$SCRIPT_DIR/themes/claude-theme-satellite.json" "$CLAUDE_THEMES_DIR/claude-theme-satellite.json"
 
 # ---------------------------------------------------------------------------
 # Claude Code settings

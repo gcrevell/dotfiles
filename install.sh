@@ -364,6 +364,23 @@ elif [[ "$ENVIRONMENT" == "personal-headless" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Shell alias: `c` -> `claude`
+#
+# personal and work only -- personal-headless is the Pi fleet, which has no
+# Claude Code install to alias to. Layered in via ~/.zshrc-config/ like the
+# OS-specific files above, rather than hardcoded into zshrc, so it can stay
+# environment-conditional.
+# ---------------------------------------------------------------------------
+CLAUDE_ALIAS_FILE="$ZSHRC_CONFIG_DIR/claude.zsh"
+if [[ "$ENVIRONMENT" == "personal" || "$ENVIRONMENT" == "work" ]]; then
+  info "Adding 'c' alias for claude"
+  mkdir -p "$ZSHRC_CONFIG_DIR"
+  echo 'alias c="claude"' > "$CLAUDE_ALIAS_FILE"
+else
+  rm -f "$CLAUDE_ALIAS_FILE"
+fi
+
+# ---------------------------------------------------------------------------
 # Claude Code settings
 #
 # Claude Code has no settings.local.json at user scope (only project scope), so

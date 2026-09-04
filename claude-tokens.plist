@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  claude-tokens.plist — ship Claude Code token usage to InfluxDB, hourly.
+
+  Template. install.sh substitutes __HOME__ and installs it as
+  ~/Library/LaunchAgents/com.skyler.claude-tokens.plist. launchd does no
+  variable expansion of its own, so every path here has to be absolute.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.skyler.claude-tokens</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>__HOME__/.local/bin/claude-tokens-influx</string>
+    </array>
+
+    <!--
+      StartInterval, not StartCalendarInterval: an interval job whose window
+      elapsed while the machine was asleep fires ON WAKE. Close the lid on
+      Friday, open it on Monday, it ships Monday morning. cron just misses it.
+
+      Hourly rather than every 15 minutes. Every run is a full recursive read of
+      the entire transcript corpus (a few hundred MB and growing linearly), for
+      a number that moves slowly. There is no catch-up cost to a sparser
+      schedule — each run re-sends the complete history anyway.
+    -->
+    <key>StartInterval</key>
+    <integer>3600</integer>
+
+    <!--
+      Also run once at load, so a fresh install shows data without waiting an
+      hour to find out whether the config is even right.
+    -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- It is a background statistics job; it should lose every race. -->
+    <key>Nice</key>
+    <integer>10</integer>
+    <key>LowPriorityIO</key>
+    <true/>
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <!--
+      The wrapper writes and trims its own log at ~/Library/Logs. Pointing
+      launchd's streams at a file too would give an unrotated file that grows
+      forever, and would hold it open while the wrapper tries to rewrite it.
+    -->
+    <key>StandardOutPath</key>
+    <string>/dev/null</string>
+    <key>StandardErrorPath</key>
+    <string>/dev/null</string>
+</dict>
+</plist>

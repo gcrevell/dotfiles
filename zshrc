@@ -59,6 +59,7 @@ alias gc="git commit"
 alias gpu="git pull"
 alias glg="git lg"
 alias gr="git recent"
+alias c="claude"
 
 # ---------------------------------------------------------------------------
 # Extra config (e.g. OS-specific files installed by install.sh)

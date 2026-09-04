@@ -295,10 +295,16 @@ elif [[ "$ENVIRONMENT" == "personal" ]]; then
     warn "1password-cli (op) not found; skipping key sync"
   fi
 
-  # Headless Git commit signing with ssh-keygen
+  # Install the signing wrapper. Not plain `ssh-keygen`: see the comment in
+  # ssh-keygen-noagent.sh for why user.signingkey pointing at a file on disk
+  # does not, by itself, keep the signature off the 1Password agent.
+  cp "$SCRIPT_DIR/ssh-keygen-noagent.sh" "$HOME/.local/bin/ssh-keygen-noagent"
+  chmod +x "$HOME/.local/bin/ssh-keygen-noagent"
+
+  # Headless Git commit signing with the on-disk key
   git config --global commit.gpgsign true
   git config --global gpg.format ssh
-  git config --global gpg.ssh.program "ssh-keygen"
+  git config --global gpg.ssh.program "$HOME/.local/bin/ssh-keygen-noagent"
   git config --global user.signingkey "$HOME/.ssh/llm_keys/id_signing"
   git config --global push.autoSetupRemote true
 

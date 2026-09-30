@@ -11,22 +11,24 @@
       {
         "id": "2",
         "type": "separator",
-        "character": ","
+        "character": ",",
+        "color": "hex:EEEDF9"
       },
       {
         "id": "3",
         "type": "thinking-effort",
-        "color": "hex:8E87B0",
+        "color": "hex:76FFB7",
         "rawValue": true
       },
       {
         "id": "4",
-        "type": "separator"
+        "type": "separator",
+        "color": "hex:EEEDF9"
       },
       {
         "id": "5",
         "type": "context-bar",
-        "color": "hex:FF59E4",
+        "color": "hex:86B1FF",
         "rawValue": false,
         "metadata": {
           "display": "slider"
@@ -34,12 +36,13 @@
       },
       {
         "id": "6",
-        "type": "separator"
+        "type": "separator",
+        "color": "hex:EEEDF9"
       },
       {
         "id": "7",
         "type": "session-cost",
-        "color": "hex:FCB100"
+        "color": "hex:FFC700"
       },
       {
         "id": "cddc2929-11d6-4ca6-b84b-9776aecf0215",
@@ -56,12 +59,13 @@
       {
         "id": "ae67653f-1234-4326-aaf8-601129feed53",
         "type": "separator",
-        "character": "-"
+        "character": "-",
+        "color": "hex:EEEDF9"
       },
       {
         "id": "14e65a06-f26b-4ca8-9fed-4f43bfde5d9e",
         "type": "git-branch",
-        "color": "hex:C896FF"
+        "color": "hex:AE50FE"
       }
     ],
     [],

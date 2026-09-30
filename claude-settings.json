@@ -3,5 +3,11 @@
     "commit": "",
     "pr": ""
   },
-  "theme": "custom:claude-theme-satellite"
+  "theme": "custom:claude-theme-satellite",
+  "statusLine": {
+    "type": "command",
+    "command": "npx -y ccstatusline@latest",
+    "padding": 0,
+    "refreshInterval": 10
+  }
 }

@@ -1,0 +1,121 @@
+{
+  "version": 4,
+  "lines": [
+    [
+      {
+        "id": "1",
+        "type": "model",
+        "color": "hex:AE50FE",
+        "rawValue": true
+      },
+      {
+        "id": "2",
+        "type": "separator",
+        "color": "hex:EEEDF9",
+        "character": ","
+      },
+      {
+        "id": "3",
+        "type": "thinking-effort",
+        "color": "hex:76FFB7",
+        "rawValue": true
+      },
+      {
+        "id": "4",
+        "type": "separator",
+        "color": "hex:EEEDF9"
+      },
+      {
+        "id": "5",
+        "type": "context-bar",
+        "color": "hex:86B1FF",
+        "rawValue": false,
+        "metadata": {
+          "display": "slider"
+        }
+      },
+      {
+        "id": "6",
+        "type": "separator",
+        "color": "hex:EEEDF9"
+      },
+      {
+        "id": "b8cb0435-1884-4f39-9267-d4e7f5fc5ccf",
+        "type": "custom-text",
+        "customText": "Usage: ",
+        "color": "hex:FFC700"
+      },
+      {
+        "id": "7",
+        "type": "session-usage",
+        "color": "hex:FFC700",
+        "numberFormat": {
+          "style": "compact"
+        },
+        "metadata": {
+          "display": "time"
+        },
+        "rawValue": true
+      },
+      {
+        "id": "968afb6f-d0b5-4df8-81a9-aa95c147b264",
+        "type": "custom-command",
+        "color": "hex:FFC700",
+        "commandPath": "jq -r '.rate_limits.seven_day.used_percentage // empty | select(. > 80) | \", Weekly: \\((. * 10 | round) / 10)%\"'"
+      },
+      {
+        "id": "cddc2929-11d6-4ca6-b84b-9776aecf0215",
+        "type": "flex-separator"
+      },
+      {
+        "id": "16899612-c804-42a3-a37b-9fdcff87eb39",
+        "type": "git-review",
+        "color": "hex:00DD8B",
+        "metadata": {
+          "hide": "no-git,no-data,status,title"
+        }
+      },
+      {
+        "id": "ae67653f-1234-4326-aaf8-601129feed53",
+        "type": "separator",
+        "color": "hex:EEEDF9",
+        "character": "-"
+      },
+      {
+        "id": "14e65a06-f26b-4ca8-9fed-4f43bfde5d9e",
+        "type": "git-branch",
+        "color": "hex:AE50FE"
+      }
+    ],
+    [],
+    []
+  ],
+  "flexMode": "full-minus-40",
+  "compactThreshold": 60,
+  "colorLevel": 3,
+  "defaultPaddingSide": "both",
+  "inheritSeparatorColors": false,
+  "globalBold": false,
+  "gitCacheTtlSeconds": 5,
+  "terminalWidthCacheTtlSeconds": 5,
+  "customCommandCacheTtlSeconds": 0,
+  "minimalistMode": false,
+  "powerline": {
+    "enabled": false,
+    "separators": [
+      ""
+    ],
+    "separatorInvertBackground": [
+      false
+    ],
+    "startCaps": [],
+    "endCaps": [],
+    "autoAlign": false,
+    "continueThemeAcrossLines": false
+  },
+  "installation": {
+    "method": "auto-update",
+    "packageManager": "npm"
+  },
+  "exportedBy": "2.2.30"
+}

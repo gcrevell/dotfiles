@@ -374,10 +374,16 @@ cp "$SCRIPT_DIR/themes/claude-theme-satellite.json" "$CLAUDE_THEMES_DIR/claude-t
 
 # ---------------------------------------------------------------------------
 # ccstatusline config -- colors are keyed off themes/claude-theme-satellite.json
-# so the status line matches the Claude Code theme installed above.
+# so the status line matches the Claude Code theme installed above. work shows
+# session cost; the personal envs (subscription) show plan usage instead.
 # ---------------------------------------------------------------------------
+if [[ "$ENVIRONMENT" == "work" ]]; then
+  CCSTATUSLINE_CONFIG="ccstatusline-config.work.json"
+else
+  CCSTATUSLINE_CONFIG="ccstatusline-config.personal.json"
+fi
 mkdir -p "$CCSTATUSLINE_CONFIG_DIR"
-cp "$SCRIPT_DIR/ccstatusline-config.json" "$CCSTATUSLINE_CONFIG_DIR/settings.json"
+cp "$SCRIPT_DIR/$CCSTATUSLINE_CONFIG" "$CCSTATUSLINE_CONFIG_DIR/settings.json"
 
 # ---------------------------------------------------------------------------
 # Claude Code settings

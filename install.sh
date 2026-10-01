@@ -19,6 +19,9 @@ ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 OMZ_TEMPLATE="${ZSH:-$HOME/.oh-my-zsh}/templates/zshrc.zsh-template"
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 LOCAL_CLAUDE_SETTINGS="$HOME/.claude-settings.local.json"
+CLAUDE_THEMES_DIR="$HOME/.claude/themes"
+CCSTATUSLINE_CONFIG_DIR="$HOME/.config/ccstatusline"
+CLAUDE_GLOBAL_CONFIG="$HOME/.claude.json"
 
 source "$SCRIPT_DIR/lib.sh"
 
@@ -82,7 +85,7 @@ else
   git clone https://github.com/zsh-users/zsh-syntax-highlighting $ZSH_CUSTOM/plugins/zsh-syntax-highlighting
 fi
 
-cp "$SCRIPT_DIR/pure.zsh-theme" "$ZSH_CUSTOM/themes/pure.zsh-theme"
+cp "$SCRIPT_DIR/themes/pure.zsh-theme" "$ZSH_CUSTOM/themes/pure.zsh-theme"
 
 # ---------------------------------------------------------------------------
 # Mac specific install
@@ -364,6 +367,25 @@ elif [[ "$ENVIRONMENT" == "personal-headless" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Claude Code custom themes
+# ---------------------------------------------------------------------------
+mkdir -p "$CLAUDE_THEMES_DIR"
+cp "$SCRIPT_DIR/themes/claude-theme-satellite.json" "$CLAUDE_THEMES_DIR/claude-theme-satellite.json"
+
+# ---------------------------------------------------------------------------
+# ccstatusline config -- colors are keyed off themes/claude-theme-satellite.json
+# so the status line matches the Claude Code theme installed above. work shows
+# session cost; the personal envs (subscription) show plan usage instead.
+# ---------------------------------------------------------------------------
+if [[ "$ENVIRONMENT" == "work" ]]; then
+  CCSTATUSLINE_CONFIG="ccstatusline-config.work.json"
+else
+  CCSTATUSLINE_CONFIG="ccstatusline-config.personal.json"
+fi
+mkdir -p "$CCSTATUSLINE_CONFIG_DIR"
+cp "$SCRIPT_DIR/$CCSTATUSLINE_CONFIG" "$CCSTATUSLINE_CONFIG_DIR/settings.json"
+
+# ---------------------------------------------------------------------------
 # Claude Code settings
 #
 # Claude Code has no settings.local.json at user scope (only project scope), so
@@ -398,6 +420,28 @@ if command -v jq &>/dev/null; then
   printf '%s\n' "$MERGED_SETTINGS" > "$CLAUDE_SETTINGS"
 else
   warn "jq not found, skipping Claude Code settings merge"
+fi
+
+# ---------------------------------------------------------------------------
+# Claude Code global config (~/.claude.json)
+#
+# A different file from ~/.claude/settings.json above: this is the CLI's own
+# global config (accounts, project list, UI toggles), which install.sh
+# otherwise leaves alone. Only the keys tracked in claude-global-config.json
+# are force-applied over whatever's already there; everything else survives
+# untouched. Claude Code creates this file itself on first run, so there's
+# nothing to merge into until that's happened at least once.
+# ---------------------------------------------------------------------------
+if command -v jq &>/dev/null; then
+  if [[ -f "$CLAUDE_GLOBAL_CONFIG" ]]; then
+    info "Merging Claude Code global config into $CLAUDE_GLOBAL_CONFIG"
+    MERGED_GLOBAL_CONFIG="$(jq -s '.[0] * .[1]' "$CLAUDE_GLOBAL_CONFIG" "$SCRIPT_DIR/claude-global-config.json")"
+    printf '%s\n' "$MERGED_GLOBAL_CONFIG" > "$CLAUDE_GLOBAL_CONFIG"
+  else
+    info "$CLAUDE_GLOBAL_CONFIG doesn't exist yet, skipping global config merge"
+  fi
+else
+  warn "jq not found, skipping Claude Code global config merge"
 fi
 
 info "Done. Restart your shell or run: source ~/.zshrc"

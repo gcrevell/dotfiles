@@ -330,7 +330,7 @@ $SSH_BLOCK_START
 # Gitea runs its own sshd in a container published on host port 2222, which is a
 # different service from the Pi's own sshd on 22. Matching on the \`git\` login
 # user keeps plain \`ssh git-server\` (User skyler) pointed at the Pi.
-Match host git-server,git-server.lan,192.168.86.25 user git
+Match host git-server,10.64.0.4 user git
     Port 2222
     IdentityFile ~/.ssh/llm_keys/id_personal_gitea
     IdentitiesOnly yes

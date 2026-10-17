@@ -93,6 +93,28 @@ else
   fi
 fi
 
+# ag (the_silver_searcher). Debian/Ubuntu package it as silversearcher-ag;
+# everyone else uses the upstream name.
+if command -v ag &>/dev/null; then
+  info "ag already installed, skipping"
+else
+  info "Installing ag..."
+  if command -v apt-get &>/dev/null; then
+    sudo apt-get update && sudo apt-get install -y silversearcher-ag
+  elif command -v dnf &>/dev/null; then
+    sudo dnf install -y the_silver_searcher
+  elif command -v pacman &>/dev/null; then
+    sudo pacman -Sy --noconfirm the_silver_searcher
+  elif command -v zypper &>/dev/null; then
+    sudo zypper install -y the_silver_searcher
+  elif command -v apk &>/dev/null; then
+    sudo apk add the_silver_searcher
+  else
+    echo "error: no supported package manager found (apt-get, dnf, pacman, zypper, apk)" >&2
+    exit 1
+  fi
+fi
+
 if [[ "$ENVIRONMENT" == "personal-headless" ]]; then
   info "personal-headless environment, skipping gh (nothing on these hosts uses it)"
 elif command -v gh &>/dev/null; then

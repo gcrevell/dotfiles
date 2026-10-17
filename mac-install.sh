@@ -76,6 +76,13 @@ else
   brew install jq
 fi
 
+if brew list the_silver_searcher &>/dev/null; then
+  info "ag already installed, skipping"
+else
+  info "Installing ag..."
+  brew install the_silver_searcher
+fi
+
 if [[ "$ENVIRONMENT" == "personal" || "$ENVIRONMENT" == "work" ]]; then
   if brew list 1password-cli &>/dev/null; then
     info "1password-cli already installed, skipping"

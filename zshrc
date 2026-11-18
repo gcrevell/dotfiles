@@ -61,6 +61,9 @@ alias glg="git lg"
 alias gr="git recent"
 alias c="claude"
 
+# oh-my-zsh's git plugin aliases glog to git log, shadowing the glog command
+(( ${+aliases[glog]} )) && unalias glog
+
 # ---------------------------------------------------------------------------
 # Extra config (e.g. OS-specific files installed by install.sh)
 # ---------------------------------------------------------------------------

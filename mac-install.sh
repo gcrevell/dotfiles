@@ -164,3 +164,42 @@ if [[ "$ENVIRONMENT" == "personal" ]]; then
   fi
 fi
 
+
+# ---------------------------------------------------------------------------
+# glog, the command-line client for Graylog search (personal only)
+#
+# gcrevell/glog is private, so the clone goes through gh's credential helper
+# and fails until `gh auth login` has run. The command is a symlink into the
+# checkout, so a pull there updates it. Graylog's URL and token live in the
+# untracked ~/.config/glog/config.vars.
+# ---------------------------------------------------------------------------
+if [[ "$ENVIRONMENT" == "personal" ]]; then
+  GLOG_DIR="$HOME/src/glog"
+  GLOG_CONFIG_DIR="$HOME/.config/glog"
+
+  if [[ -d "$GLOG_DIR/.git" ]]; then
+    info "Updating glog checkout"
+    GIT_TERMINAL_PROMPT=0 git -C "$GLOG_DIR" pull --ff-only --quiet \
+      || warn "Could not fast-forward $GLOG_DIR — leaving it as-is"
+  elif GIT_TERMINAL_PROMPT=0 git clone --quiet https://github.com/gcrevell/glog.git "$GLOG_DIR"; then
+    info "Cloned glog into $GLOG_DIR"
+  else
+    warn "Could not clone gcrevell/glog, which is private. Run gh auth login, then re-run this."
+  fi
+
+  if [[ -x "$GLOG_DIR/glog" ]]; then
+    info "Linking glog into ~/.local/bin"
+    mkdir -p "$HOME/.local/bin"
+    ln -sfn "$GLOG_DIR/glog" "$HOME/.local/bin/glog"
+
+    mkdir -p "$GLOG_CONFIG_DIR"
+    chmod 700 "$GLOG_CONFIG_DIR"
+    if [[ -e "$GLOG_CONFIG_DIR/config.vars" ]]; then
+      chmod 600 "$GLOG_CONFIG_DIR/config.vars"
+    else
+      warn "glog is installed but not configured. Create $GLOG_CONFIG_DIR/config.vars with:"
+      warn '  GLOG_URL="https://graylog.example"'
+      warn '  GLOG_TOKEN="..."   # Graylog: System > Users and Teams > your user > Edit Tokens'
+    fi
+  fi
+fi

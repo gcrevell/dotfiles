@@ -100,12 +100,21 @@ if [[ "$ENVIRONMENT" == "personal" ]]; then
     brew install influxdb-cli
   fi
 
-  if brew list --cask paperless-ngx-cli &>/dev/null; then
-    info "paperless-ngx-cli already installed, skipping"
-  else
+  # paperless-ngx-cli bundles a Claude Code skill matched to its version, so
+  # it's reinstalled after every upgrade, then limited to /paperless-ngx-cli
+  # so Claude never loads it on its own.
+  brew trust --cask stefanhoth/tap/paperless-ngx-cli
+  if ! brew list --cask paperless-ngx-cli &>/dev/null; then
     info "Installing paperless-ngx-cli..."
     brew install --cask stefanhoth/tap/paperless-ngx-cli
+  else
+    info "Upgrading paperless-ngx-cli..."
+    brew upgrade --cask stefanhoth/tap/paperless-ngx-cli
   fi
+  paperless skill install --user >/dev/null
+  sed -i '' '/^name: paperless-ngx-cli$/a\
+disable-model-invocation: true
+' "$HOME/.agents/skills/paperless-ngx-cli/SKILL.md"
 
   # unifly, the UniFi Network CLI. Its Claude Code skill is version-matched,
   # so it's reinstalled after every upgrade, then limited to /unifly so Claude

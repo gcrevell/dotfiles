@@ -20,7 +20,7 @@ Re-running `install.sh` is safe — it skips anything already installed and won'
 
 - **zsh** as the shell, installed via the system package manager on Linux (apt/dnf/pacman/zypper/apk) and set as the default shell (macOS ships with zsh already).
 - **oh-my-zsh**, installed unattended, with the `pure` theme and these plugins: `git`, `gh`, `z`, `colored-man-pages`, `command-not-found`, `zsh-autosuggestions`, `zsh-syntax-highlighting`.
-- **On macOS**: Homebrew (if missing), `1password-cli` (`personal`/`work`), the `claude-code` cask, and `git-recent`.
+- **On macOS**: Homebrew (if missing), `1password-cli` (`personal`/`work`), the `claude-code` cask, `git-recent`, and, for `personal`, `influxdb-cli` and `paperless-ngx-cli`.
 - **direnv**, installed via Homebrew on macOS or the system package manager on Linux, and hooked into `~/.zshrc`.
 - **gh** (GitHub CLI), installed via Homebrew on macOS or the system package manager on Linux, except under `personal-headless` where it's skipped. On apt systems it adds GitHub's own apt repo first, since Ubuntu/Debian only ship `gh` in newer releases — that repo covers `arm64`/`armhf`, so Raspberry Pi works.
 - **jq**, installed via Homebrew on macOS or the system package manager on Linux. Used to merge the Claude Code settings below.

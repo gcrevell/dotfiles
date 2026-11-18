@@ -33,6 +33,7 @@ Re-running `install.sh` is safe — it skips anything already installed and won'
   - `personal-headless`: sets minimal personal identity with no 1Password dependencies or prompts.
 - **Claude Code settings**: `~/.claude/settings.json` is rebuilt from the tracked `claude-settings.json` (shared defaults, re-applied every run) layered over whatever is already in the file, with `~/.claude-settings.local.json` applied last so per-machine overrides always win.
 - **Claude Code token usage → InfluxDB** (macOS + `personal` only): clones [`claude-token-influx`](https://github.com/gcrevell/claude-token-influx) to `~/src/claude-token-influx`, installs `claude-tokens-influx` to `~/.local/bin`, and loads an hourly launchd agent. See below — it needs config before it does anything.
+- **glog** (macOS + `personal` only): clones the private [`glog`](https://github.com/gcrevell/glog), a command-line client for Graylog search, to `~/src/glog` and links it into `~/.local/bin`. It reads Graylog's URL and token from `~/.config/glog/config.vars`, which you create; see glog's README.
 
 Your existing `~/.zshrc` (if different from this repo's) is backed up to `~/.zshrc.local`, which is sourced at the end of the installed `~/.zshrc` for untracked, machine-specific overrides.
 

@@ -20,7 +20,7 @@ Re-running `install.sh` is safe — it skips anything already installed and won'
 
 - **zsh** as the shell, installed via the system package manager on Linux (apt/dnf/pacman/zypper/apk) and set as the default shell (macOS ships with zsh already).
 - **oh-my-zsh**, installed unattended, with the `pure` theme and these plugins: `git`, `gh`, `z`, `colored-man-pages`, `command-not-found`, `zsh-autosuggestions`, `zsh-syntax-highlighting`.
-- **On macOS**: Homebrew (if missing), `1password-cli` (`personal`/`work`), the `claude-code` cask, `git-recent`, and, for `personal`, `influxdb-cli` and `paperless-ngx-cli`.
+- **On macOS**: Homebrew (if missing), `1password-cli` (`personal`/`work`), the `claude-code` cask, `git-recent`, and, for `personal`, `influxdb-cli`, `paperless-ngx-cli` and `unifly` (see below).
 - **direnv**, installed via Homebrew on macOS or the system package manager on Linux, and hooked into `~/.zshrc`.
 - **gh** (GitHub CLI), installed via Homebrew on macOS or the system package manager on Linux, except under `personal-headless` where it's skipped. On apt systems it adds GitHub's own apt repo first, since Ubuntu/Debian only ship `gh` in newer releases — that repo covers `arm64`/`armhf`, so Raspberry Pi works.
 - **jq**, installed via Homebrew on macOS or the system package manager on Linux. Used to merge the Claude Code settings below.
@@ -34,6 +34,7 @@ Re-running `install.sh` is safe — it skips anything already installed and won'
 - **Claude Code settings**: `~/.claude/settings.json` is rebuilt from the tracked `claude-settings.json` (shared defaults, re-applied every run) layered over whatever is already in the file, with `~/.claude-settings.local.json` applied last so per-machine overrides always win.
 - **Claude Code token usage → InfluxDB** (macOS + `personal` only): clones [`claude-token-influx`](https://github.com/gcrevell/claude-token-influx) to `~/src/claude-token-influx`, installs `claude-tokens-influx` to `~/.local/bin`, and loads an hourly launchd agent. See below — it needs config before it does anything.
 - **glog** (macOS + `personal` only): clones the private [`glog`](https://github.com/gcrevell/glog), a command-line client for Graylog search, to `~/src/glog` and links it into `~/.local/bin`. It reads Graylog's URL and token from `~/.config/glog/config.vars`, which you create; see glog's README.
+- **unifly** (macOS + `personal` only): the [UniFi Network CLI](https://github.com/hyperb1iss/unifly), installed from the `hyperb1iss/tap` Homebrew tap and upgraded on every run, along with its Claude Code skill (`~/.claude/skills/unifly`), which is reinstalled each time to match the binary. Point it at the controller once with `unifly config init`, which keeps the credentials in the macOS keychain.
 
 Your existing `~/.zshrc` (if different from this repo's) is backed up to `~/.zshrc.local`, which is sourced at the end of the installed `~/.zshrc` for untracked, machine-specific overrides.
 

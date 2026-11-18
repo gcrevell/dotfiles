@@ -106,6 +106,24 @@ if [[ "$ENVIRONMENT" == "personal" ]]; then
     info "Installing paperless-ngx-cli..."
     brew install --cask stefanhoth/tap/paperless-ngx-cli
   fi
+
+  # unifly, the UniFi Network CLI. Its Claude Code skill is version-matched,
+  # so it's reinstalled after every upgrade. The controller profile and
+  # credentials live in ~/.config/unifly and the OS keyring.
+  # Homebrew ignores formulae from untrusted taps, upgrades included.
+  brew tap hyperb1iss/tap
+  brew trust --formula hyperb1iss/tap/unifly
+  if ! brew list unifly &>/dev/null; then
+    info "Installing unifly..."
+    brew install hyperb1iss/tap/unifly
+  else
+    info "Upgrading unifly..."
+    brew upgrade hyperb1iss/tap/unifly
+  fi
+  unifly skill --install --claude >/dev/null
+  if [[ ! -e "$HOME/.config/unifly/config.toml" ]]; then
+    warn "unifly is installed but not configured. Run: unifly config init"
+  fi
 fi
 
 # ---------------------------------------------------------------------------

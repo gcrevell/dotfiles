@@ -92,6 +92,22 @@ if [[ "$ENVIRONMENT" == "personal" || "$ENVIRONMENT" == "work" ]]; then
   fi
 fi
 
+if [[ "$ENVIRONMENT" == "personal" ]]; then
+  if brew list influxdb-cli &>/dev/null; then
+    info "influxdb-cli already installed, skipping"
+  else
+    info "Installing influxdb-cli..."
+    brew install influxdb-cli
+  fi
+
+  if brew list --cask paperless-ngx-cli &>/dev/null; then
+    info "paperless-ngx-cli already installed, skipping"
+  else
+    info "Installing paperless-ngx-cli..."
+    brew install --cask stefanhoth/tap/paperless-ngx-cli
+  fi
+fi
+
 # ---------------------------------------------------------------------------
 # Claude Code token usage -> InfluxDB (personal only)
 #

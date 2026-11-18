@@ -179,9 +179,9 @@ if [[ "$ENVIRONMENT" == "personal" ]]; then
 
   if [[ -d "$GLOG_DIR/.git" ]]; then
     info "Updating glog checkout"
-    git -C "$GLOG_DIR" pull --ff-only --quiet \
+    GIT_TERMINAL_PROMPT=0 git -C "$GLOG_DIR" pull --ff-only --quiet \
       || warn "Could not fast-forward $GLOG_DIR — leaving it as-is"
-  elif git clone --quiet https://github.com/gcrevell/glog.git "$GLOG_DIR"; then
+  elif GIT_TERMINAL_PROMPT=0 git clone --quiet https://github.com/gcrevell/glog.git "$GLOG_DIR"; then
     info "Cloned glog into $GLOG_DIR"
   else
     warn "Could not clone gcrevell/glog, which is private. Run gh auth login, then re-run this."

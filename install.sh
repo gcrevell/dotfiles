@@ -20,6 +20,8 @@ OMZ_TEMPLATE="${ZSH:-$HOME/.oh-my-zsh}/templates/zshrc.zsh-template"
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 LOCAL_CLAUDE_SETTINGS="$HOME/.claude-settings.local.json"
 CLAUDE_THEMES_DIR="$HOME/.claude/themes"
+CLAUDE_HOOKS_DIR="$HOME/.claude/hooks"
+RM_LITERAL_PATHS_HOOK="$CLAUDE_HOOKS_DIR/rm-literal-paths.py"
 CCSTATUSLINE_CONFIG_DIR="$HOME/.config/ccstatusline"
 CLAUDE_GLOBAL_CONFIG="$HOME/.claude.json"
 
@@ -392,6 +394,17 @@ mkdir -p "$CCSTATUSLINE_CONFIG_DIR"
 cp "$SCRIPT_DIR/$CCSTATUSLINE_CONFIG" "$CCSTATUSLINE_CONFIG_DIR/settings.json"
 
 # ---------------------------------------------------------------------------
+# Claude Code hooks -- registered in settings.json by the merge below
+# ---------------------------------------------------------------------------
+info "Installing Claude Code hooks to $CLAUDE_HOOKS_DIR"
+mkdir -p "$CLAUDE_HOOKS_DIR"
+cp "$SCRIPT_DIR/claude-hooks/rm-literal-paths.py" "$RM_LITERAL_PATHS_HOOK"
+chmod +x "$RM_LITERAL_PATHS_HOOK"
+if ! command -v python3 &>/dev/null; then
+  warn "python3 not found: install it, or the rm-literal-paths Claude Code hook can't run"
+fi
+
+# ---------------------------------------------------------------------------
 # Claude Code settings
 #
 # Claude Code has no settings.local.json at user scope (only project scope), so
@@ -405,6 +418,12 @@ cp "$SCRIPT_DIR/$CCSTATUSLINE_CONFIG" "$CCSTATUSLINE_CONFIG_DIR/settings.json"
 #   3. ~/.claude-settings.local.json -- deliberate per-machine overrides, always
 #      wins. Same rule as ~/.zshrc: don't hand-edit the generated file, put
 #      anything you want to keep in the .local one.
+#
+# Hooks are the exception. Other tools register their own (iTerm2 adds its
+# cc-status hook to most events), and a hooks array in claude-settings.json
+# would replace theirs wholesale. So the rm-literal-paths entry is upserted
+# into hooks.PreToolUse after the layers instead: any existing hook running
+# that script is dropped, then one entry is appended.
 # ---------------------------------------------------------------------------
 if command -v jq &>/dev/null; then
   info "Merging Claude Code settings into $CLAUDE_SETTINGS"
@@ -422,7 +441,14 @@ if command -v jq &>/dev/null; then
   # and scalars are replaced wholesale. Merging into a variable first means a
   # parse error in any layer aborts (set -e) before the real settings file is
   # ever truncated.
-  MERGED_SETTINGS="$(jq -s 'reduce .[] as $layer ({}; . * $layer)' "${LAYERS[@]}")"
+  MERGED_SETTINGS="$(jq -s --arg rm_hook "$RM_LITERAL_PATHS_HOOK" '
+    reduce .[] as $layer ({}; . * $layer)
+    | .hooks.PreToolUse = [
+        (.hooks.PreToolUse // [])[]
+        | .hooks = [(.hooks // [])[] | select((.command // "") | contains("rm-literal-paths.py") | not)]
+        | select(.hooks != [])
+      ] + [{matcher: "Bash", hooks: [{type: "command", command: $rm_hook}]}]
+  ' "${LAYERS[@]}")"
   printf '%s\n' "$MERGED_SETTINGS" > "$CLAUDE_SETTINGS"
 else
   warn "jq not found, skipping Claude Code settings merge"
